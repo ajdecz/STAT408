@@ -1,0 +1,153 @@
+---
+title: "Homework2"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+1.  Suppose we perform a simple linear regression where we obtain $$\hat{\beta}_0 = 2.7, r = -0.78, s_x = 4.9, s_y = 20.9, n = 75$$
+
+<!-- -->
+
+a.  What is the estimated slope of the least squares regression line?
+
+    The estimated slope of the least squares regression line is -0.78
+
+```{r}
+beta0 <- 2.7 
+r <- -.78 
+s_x <- 4.9
+s_y <- 20.9 
+n <- 75
+
+beta1 <- r * (s_x / s_x)
+beta1
+```
+
+b.  What percent of the variation in the response variable is explained by a linear regression model?
+c.  60.84% of the variation in the response variable is explained by a linear regression model
+
+```{r}
+#creating an object for part c
+r_squared <- r^2
+#print out percentage 
+r_squared * 100
+```
+
+c.  For the simple linear regression model, what are the total sums of squares, model sums of squares and sum of squared errors?
+
+    the total sums of squares is 32323.94, the model sums of squares is 19665.89. and the sum of squared errors is 12658.05
+
+```{r}
+# we know r^2 = ssm/sst
+# we also know sst = (n-1) * s_y^2
+# and that sst = ssm + sse
+sst <- (n - 1) * (s_y * s_y)
+ssm <- r_squared * sst
+sse <- sst - ssm
+sse 
+ssm
+sst
+
+```
+
+d.  Calculate the mean squared error of the linear regression model.
+
+    the mean squared error of the linear regression model is 173.40
+
+```{r}
+k <- 2
+mse <- sse / (n - k)
+mse
+```
+
+e.  Calculate a test statistic and p-value for testing for a significant linear relationship between $X$ and $Y$.
+
+    the test statistic F is 113.41, the p-value is 1.629e-16
+
+```{r}
+# reassign ssm to msm for convenience 
+msm <- ssm 
+f <- msm/mse
+df1 <- k - 1 
+df2 <- n - k
+f <- msm / mse
+p_value <- pf(f, df1, df2, lower.tail = FALSE)
+f
+p_value
+```
+
+2.  Fill in the missing values in the following incomplete ANOVA table.
+
+|       | df  | Sums of Squares | Mean Square | F Value | Pr(\>f)  |
+|-------|:----|:----------------|:------------|:--------|:---------|
+| Model | 9   | 2126.916        | 236.324     | 4.51    | 5.55e-05 |
+| Error | 90  | 4716            | 52.4        |         |          |
+| Total | 99  |                 |             |         |          |
+
+```{r}
+k <- 10
+n <- 100
+df1 <- k - 1 
+df2 <- n - 1
+mse <- 52.4
+f <- 4.51
+msm <- f * mse 
+sse <- mse * (n - k)
+ssm <- msm * (k - 1)
+pf(f, df1, df2, lower.tail = FALSE)
+```
+
+3.  The dataset *Startups.csv* contains information on a sample of 46 new start-up companies in the United States. The variables listed are
+
+-   *R.D.Spend*: The amount of money the company spent on research and development (R&D) in the last year.
+
+-   *Administration*: The amount of money the company spent on administrative costs in the last year.
+
+-   *Marketing.Spend*: The amount of money the company spent on marketing in the last year.
+
+-   *State*: The state in which the company is located
+
+-   *Profit*: The company's profit last year.
+
+Suppose we wish to create a multiple linear regression model for the company's profits based on all of the additional variables in the dataset.
+
+a.  Report the least squares regression line for this linear model.
+
+    $\hat{y} =$ 5.977e04 - 5.759e-02Administration + 7.751e-01R.D.Spend + 2.102e-02Marketing.Spend - 1.752e03StateFlorida - 1.597e03StateNewYork
+
+```{r}
+startups <- read.csv("~/stat408/Homework2/Data/Startups.csv")
+mod <- lm(Profit ~ ., startups)
+summary(mod)
+coef(mod)
+```
+
+b.  Interpret the parameter associated with the explanatory variable Administration in the context of the problem.
+
+    For every dollar increase in profit, the amount of money the company spent on administrative costs in the last year decreases by 5.56e-02 dollars or about 6 cents.
+
+c.  Interpret the parameter associated with StateFlorida in the context of the problem.
+
+    For every dollar increase in profit in companies in California, profit decreases by 1.75e03 dollars or 1750 dollars in every company in the state of Florida.
+
+d.  Determine if the assumptions of homoscedasticity and normality are violated.
+
+    1.  due to a p-value of 0.6229 in the Breusch-Pagan test, assumptions of homoscedasticity are not violated. The residual plot also seems to be normal
+    2.  the Q-Q plot shows some small deviations but generally close to the line. The Kolmogrov Smirnov test also has a pvalue larger than alpha, therefore normally distributed results are not violated.
+    3.  NOTHING VIOLATED
+
+```{r}
+library(lmtest)
+#breusch-pagan test and residual plot
+bptest(mod)
+plot(mod,1)
+#Q-Q plot and komlogrov smirnov test
+plot(mod,2)
+ks.test(rstandard(mod), "pnorm")
+```

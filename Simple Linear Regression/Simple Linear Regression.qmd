@@ -1,0 +1,454 @@
+---
+title: "Simple Linear Regression"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---d
+---
+
+# Background Information
+
+Suppose we have $n$ observations from two random variables $X$ and $Y$ (i.e. we have pairs of data $(x_1,y_1), (x_2,y_2),\dots,(x_n,y_n)$). We believe that we can quantify the variation of the **response/dependent variable** $Y$ by our knowledge of the **explanatory/independent variable** $X$.
+
+### Example
+
+Consider the blood pressure dataset, where we are interested quantifying the variation of systolic blood pressure based on the subjects' age.
+
+```{r}
+library(tidyverse)
+bloodpressure <- read.csv("Data/bloodpressure.csv")
+ggplot(data = bloodpressure, 
+       aes(x=Age,y=SBP)) + geom_point()
+#geompoint makes a scatterplot
+#aes defines the variables
+    
+```
+
+We need to answer the following questions:
+
+-   What is the appropriate mathematical model to use -- straight line, logarithmic function, exponential function, etc.?
+
+-   Given a specific model form, what criteria do we use and how do we obtain the best fitting model to the data.
+
+# Straight Line Model
+
+Mathematically, a straight line is defined as $$y = \beta_0 + \beta_1 x$$ where
+
+-   $\beta_0$ is the intercept -- the value of $y$ when $x = 0$
+
+-   $\beta_1$ is the slope -- the change in $y$ for a one unit change in $x$
+
+Let's say that we are tentatively assuming a straight line model for our given dataset.
+
+## Assumptions Needed for Simple Linear Regression
+
+-   Existence: For any given value of $X$, $Y$ is a random variable with a certain probability distribution with a finite mean and variance. Define:
+    -   $\mu_{Y|X}$ - the population mean of $Y$ for a fixed $X$
+    -   $\sigma_{Y|X}^2$ - the population variance of $Y$ for a fixed $X$
+-   Independence: The observed values of $Y$ are statistically independent of one another given $X$ Counterexample:
+    -   X = Daily closing price of the S&P 500
+    -   Y = Daily closing price of Bitcoin
+-   Linearity: $\mu_{Y|X}$ is a straight line function of $X$. In other words we say that $$\mu_{Y|X} = \beta_0 + \beta_1 X$$ where $\beta_0$ and $\beta_1$ are defined here as the population intercept and slope, respectively.
+
+We have now defined a structure for the mean of $Y$ given $X$.
+
+However, reconsider the scatter plot for systolic blood pressure plotted against age for the blood pressure data set. Do the data follow a straight line exactly?
+
+We need to add an additional term to account for the fact that there are differences between a straight line and the actual data. These are defined as the **errors/residuals** of the linear model, and are noted by the greek letter $\epsilon$.\
+$$Y_i = \beta_0 + \beta_1 X_i + \epsilon_i,$$
+
+The next two assumptions discuss the distribution of $\epsilon$.
+
+-   Homoscedasticity: The variance of $Y$ is the same for different given values of $X$. Mathematically, this is equivalent to saying $$\sigma_{Y|X}^2  = \sigma^2,$$ or in other words $\sigma_{Y|X_i}^2 = \sigma_{Y|X_j}^2$ for different $i$ and $j$.
+-   Normality: For any fixed value of $X$, $Y$ is normally distributed. This fact makes analysis of the data easier.
+
+All of these assumptions put together lead us to the assumption of the distribution of the residuals: $$\epsilon_i \sim \mathcal{N}(0,\sigma^2).$$
+
+## Regression Model
+
+### Example
+
+If we assume a random variable $Y \sim \mathcal{N}(\mu,\sigma^2)$, then the probability density function (pdf) is $$p(y|\mu,\sigma) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\left(-\frac{(y-\mu)^2}{2\sigma^2}\right).$$
+
+Consider a normal population whose standard deviation is known to be $\sigma=10$ and whose mean is $\mu$ and is unknown. A random sample of $n=3$ observations is drawn from the population and yields the results $Y_1=250$, $Y_2=265$, and $Y_3=259$.
+
+-   What value of $\mu$ was the most likely value to have generated this data?
+
+    ```{r echo=FALSE}
+    y1 <- 250 
+    y2 <- 265 
+    y3 <- 259 
+    ```
+
+**Maximum Likelihood Estimation**: A method of estimation where we use the density function of the random variable to determine the values of the population parameter that maximimize the likelihood (pdf) of the random variables
+
+Incorporating the above definitions of $Y_i$ and $\epsilon_i$, we can then say that $$Y_i \overset{iid}{\sim} \mathcal{N}(\beta_0 + \beta_1 X_i,\sigma^2).$$ Using maximum likelihood techniques, the estimates
+
+($\hat{\beta}_0$, $\hat{\beta}_1$, and $\hat{\sigma}^2$) are the values that maximize $$-\frac{n}{2}\log(\hat{\sigma}^2) -\sum_{i = 1}^n \frac{(y_i - (\hat{\beta}_0 + \hat{\beta}_1 x_i))^2}{2\hat{\sigma}^2},$$
+
+```{r}
+
+```
+
+When you see a hat above the notation of a population parameter, we are referring to an estimate of that parameter. This method comes from the log of the density function of a normal distribution.
+
+The method produces the estimates $$\hat{\beta}_1 = \frac{\sum_{i=1}^n(x_i - \bar{x})(y_i - \bar{y})}{\sum_{i=1}^n(x_i - \bar{x})^2}$$ and $$\hat{\beta}_0 = \bar{y} - \hat{\beta}_1\bar{x}.$$ and
+
+$$
+\hat{\sigma}^2 = \frac{1}{n}\sum_{i=1}^n(y_i - (\hat{\beta}_0 + \hat{\beta}_1 x_i))^2
+$$
+
+### Example:
+
+Suppose I obtain data with the following information:$$n = 20, \\ \sum x_i = 40, \\ \sum y_i = 230, \\ \sum x_i^2 = 100, \\ \sum y_i^2 = 3500, \\ \sum x_iy_i = 500.$$ Find $\hat{\beta}_0$, $\hat{\beta}_1$, and $\hat{\sigma}^2$ using maximum likelihood techniques.
+
+```{r}
+n <- 20 
+sum_x <- 40
+sum_y <- 230
+sum_x2 <- 100
+sum_y2<- 3500 
+sum_xy <- 500 
+ #note if you do some math, hat(b1) = (sum(xy) - xbar*ybar)/(sum(xi-xbar))
+
+xbar <- sum_x/n
+ybar <- sum_y/n 
+num <- (sum_xy - n*xbar*ybar)
+den <- (sum_x2 - n*xbar*xbar)
+beta1 <- num/den
+beta0 <- ybar - beta1*xbar
+#Note: sum((y - beta0 - beta1)^2) = sum (y^2) + n*beta0^2 + beta1^2*sum(x^2) -2 *beta0*sumy - 2*beta1*sum(xy) + 2*beta0*beta1*sumx
+
+sumsq <- sum_y2 +n*beta0^2 +beta1^2*sum_x2 - 2*beta0*sum_y -2*beta1*sum_xy + 2*beta0*beta1*sum_x
+beta1
+beta0
+sumsq
+```
+
+**Least Squares Estimation**: A method of estimation where we are concerned with minimizing the squared difference between the observed data values $y_i$ and the predictions $\hat{y}_i = \beta_0 + \beta_1 x_i.$
+
+This method is most interested in minimizing the **sum of squared errors** $$\text{SSE} = \sum_{i=1}^n (y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i)^2$$
+
+The estimates $\hat{\beta}_0$ and $\hat{\beta}_1$ are the same as maximum likelihood. However, the estimate of the variance is now
+
+$$\hat{\sigma}^2 = \frac{1}{n-2}\sum_{i = 1}^n (y_i - (\hat{\beta}_0 + \hat{\beta}_1 x_i))^2.$$
+
+-   The difference in $\hat{\sigma}^2$ between the two methods is that
+
+    -   maximum likelihood divides the sum of squared errors by $n$
+
+    -   least squares divides the sum of squared errors by $n-2$
+
+-   The least squares estimate provides an **unbiased estimate** of the variance, the expected value of the estimate of the variance is the true variance.
+
+Often times this estimate is called the **mean squared error**.
+
+### Performing Least Squares regression in R
+
+-   \*note: in R, we always perform least squares estimation\*
+
+```{r}
+#syntax is lm(y ~ x, data)
+#lm stands for linear model 
+mod <- lm(formula = SBP ~ Age, data = bloodpressure)
+summary(mod)
+```
+
+Note: hat_y (predicted values not observed values) of SBP = 98.71 + 0.9709Age is our least squares regression line.
+
+Residual standard error = 17.31 is the root mean squared error, the mean squared error is 17.31\^2.
+
+### Example
+
+According to the least squares regression line, what do we expect a randomly selected 50 year old's systolic blood pressure to be?
+
+```{r}
+98.71 + 0.9709*50
+#use our linear regression formula and plug it in 
+newdata <- data.frame(Age = 50)
+predict(mod,newdata)
+
+```
+
+What do we expect a randomly selected 80 year old's systolic blood pressure to be?
+
+```{r}
+newdata <- data.frame(Age = 80)
+predict(mod, newdata)
+```
+
+Word of caution we only observe ages up to 70, predicting SBP outside of this range is extrapolation and is prone to errors.
+
+## Intepretation of the estimates $\hat{\beta}_0$ and $\hat{\beta}_1$
+
+-   $\hat{\beta}_1$: When $x$ increases by 1 unit, the change in the predicted/expected value of y is $\hat{\beta}_1$ units.
+
+-   $\hat{\beta}_0$: The predicted/expected value of $y$ when $x = 0$.
+
+### Example
+
+What are the interpretations of $\hat{\beta}_0$ and $\hat{\beta}_1$ from the model predicting systolic blood pressure by age?
+
+-   $\hat{\beta_1} = 0.979$: for a 1 year increase in age the expected systolic blood pressure increases by 0.979 mm/Hg.
+
+-   $\hat{\beta_0} = 98.71$: for a person at age 0, the expected systolic blood pressure is 98.71 mm/Hg
+
+## Checking the validity of our assumptions
+
+-   Existence and Independence: Logic based approaches, does this make sense?
+
+-   Linearity: Check the scatter plot
+
+-   Homoscedasticity (Common Variance): Residual Plot
+
+    -   can check via a residual plot
+
+**Residual Plot**: A plot of the residuals (epsilon = Y - Yhat) from a least squares regression model, plotted against the fitted values $\hat{Y}$ = B0 + B1\*X
+
+```{r}
+#the plot function in base r can easily give us a residual plot 
+#recall, mod is our linear model 
+plot(mod,1)
+```
+
+Want to see either no pattern at all, or some type of random scatter around a horizontal line at zero. We also want to see the same type of spread of the residuals across different values of $\hat{y}$.
+
+in other words we just want to see the noise from the data part from the signal
+
+It seems like the plot is being skewed by the obvious outlier, so hard to tell. From our perspective, the residuals do appear to be randomly scattered and evenly spread across the fitted values. Therefore, the assumption of homoscedasticity is not violated. We do not have enough evidence to say assumption of homoscedasticity is violated
+
+**Breusch-Pagan Test**: A numerical test for homoscedasticity. Null hypothesis is residuals are homoscedastic. Alternative is they are not homoscedastic.
+
+```{r}
+bptest(mod)
+```
+
+-   Normality: QQ-Plotd
+
+**Quantile-Quantile (QQ) Plot**: A plot that visualizes the residuals from a model (fitted linear model) against an assumed error distribution (normal distribution for the least squares model).
+
+For our model, we want to check if the residuals are normally distributed.
+
+```{r}
+plot(mod,2)
+```
+
+We want to see points that fall closely to a 45-degree line. Note: pay closest attention to the points on the x-axis between -2 and 2.
+
+The points fall close to the 45-degree line, therefore, the assumption of normality is not violated.
+
+**Kolmogorov-Smirnov Test**: A numerical test for the normal distribution. Null hypothesis is residuals are normally distributed. Alternative is they are not normally distributed.
+
+A high p value means we fail to reject the null hypothesis and conclude the assumption of normality is not violated
+
+```{r}
+#rstandard extracts the standardized residuals from a linear model (divides by the standard deviation)
+ks.test(rstandard(mod),"pnorm")
+```
+
+The results from the BP and KS tests suggest that the assumptions of homoscedasticity and normally distributed residuals, respectively, are not violated.
+
+In order to have reliable results, we need **both** assumptions to not be violated, if even one is violated we cannot rely on our results.
+
+## Inference on linear regression model
+
+Recall from Chapter 3, we said that $$\frac{\bar{Y} - \mu}{\frac{s_Y}{\sqrt{n}}} \sim t_{df=n-1}$$ where $\bar{Y}$ is the estimator of $\mu$. We can obtain a similar conclusion regarding the distribution of $\hat{\beta}_0$ and $\hat{\beta}_1$. $$\frac{\hat{\beta}_0  - \beta_0}{\hat{\sigma}_{\hat{\beta}_0}} \sim t_{df = n-2}$$ and\
+$$\frac{\hat{\beta}_1 - \beta_1}{\hat{\sigma}_{\hat{\beta}_1}} \sim t_{df = n-2}$$ where $\hat{\sigma}_{\hat{\beta}_0}^2 = \hat{\text{Var}}(\hat{\beta}_0) = \hat{\sigma}^2\left( \frac{1}{n} + \frac{\bar{x}^2}{(n-1)s_X^2}\right)$ and $\hat{\sigma}_{\hat{\beta}_1}^2 = \hat{\text{Var}}(\hat{\beta}_1) = \frac{\hat{\sigma}^2}{(n-1)s_X^2}$ , estimates of $\sigma_{\hat{\beta}_0}^2 = \text{Var}(\hat{\beta}_0)$ and $\sigma_{\hat{\beta}_1}^2 = \text{Var}(\hat{\beta}_1)$, respectively. (Note: Often times, inference on $\beta_0$ is not meaningful to us.).
+
+Note, the degrees of freedom is now n-2 because we are estimating 2 regression parameters instead of 1 mean parameter.
+
+Also note the sigma_hat\^2 in the variance formulas is the least squares estimate of the variance
+
+```{r}
+```
+
+### Confidence intervals for $\beta_1$
+
+Define $t_\alpha^*$ as the quantile from the $t$-distribution such that $Pr\left(-t_\alpha^* \leq \frac{\hat{\beta}_1 - \beta_1}{\hat{\sigma}_{\hat{\beta}_1}} \leq t_\alpha^*\right) = 1- \alpha$. Solving for $\beta_1$ in the center, we have $Pr\left(\hat{\beta}_1 - t_\alpha^* \times \hat{\sigma}_{\hat{\beta}_1} \leq \beta_1 \leq \hat{\beta}_1 +t_\alpha^* \times \hat{\sigma}_{\hat{\beta}_1}\right) = 1- \alpha$.
+
+A $C = 100\times(1-\alpha)$% confidence interval for the population slope, $\beta_1$, is $$\hat{\beta}_1 \pm t_{1-\frac{\alpha}{2},n-2} \times \hat{\sigma}_{\hat{\beta}_1}$$ where $t_{1-\frac{\alpha}{2},n-2}$ is the $1 - \frac{\alpha}{2}$ quantile of the $t$-distribution with $n-2$ degrees of freedom.
+
+#### Example
+
+Calculate and interpret a 90% confidence interval for $\beta_1$ for the blood pressure dataset.
+
+```{r}
+summary(mod)$coefficients
+#$coefficients looks at only that part
+beta1 <- 0.9708704
+sbeta1 <- .2102157
+n <- nrow(bloodpressure)
+alpha <- 0.1
+crit <- qt(1-alpha/2, n-2)
+beta1 + c(-1,1) * crit * sbeta1
+
+#using r fucntions 
+
+confint(mod, "Age", level = 0.9)
+```
+
+0.613266
+
+1.3228475
+
+We are 90% confident that for a one year increase in age, the true change in expected systolic blood pressure is between 0.6133 and 1.328 mm/Hg
+
+### Hypothesis testing for $\beta_1$
+
+In terms of hypothesis testing, we are considered with testing if a linear model for our response variable with the explanatory variable included is statistically significantly better at predicting than the model that does not include the explanatory variable.
+
+In other words we are testing to see if the solid line in the below graph ($\hat{y} = \hat{\beta}_0 + \hat{\beta}_1x$) is significantly better at predicting $Y$ than the horizontal dashed line ($\hat{y} = \bar{y}$).
+
+```{r, echo=FALSE}
+plot(SBP ~ Age, bloodpressure)
+abline(mod)
+hline(mod
+```
+
+We can think of this in terms of a reduced model and a full model:
+
+-   Reduced Model: $\hat{Y} = \beta_0$
+
+-   Full Model: $\hat{Y} = \beta_0 + \beta_1 X$
+
+The null hypothesis can be thought of as what is missing from the full model in the reduced model.
+
+-   $H_0: \beta_1 = 0$
+
+The alternative hypothesis is the exact opposite of the null hypothesis, and what we are trying to prove.
+
+-   $H_a: \beta_1 \neq 0$
+
+If $H_0$ is true, then $$\frac{\hat{\beta}_1}{\hat{\sigma}_{\hat{\beta}_1}} \sim t_{df=n-2}$$ Why? - we are substituting in the null hypothesis B1 = 0 into the distribution of B1 we defined above
+
+Therefore, our test statistic is $t = \frac{\hat{\beta}_1}{\hat{\sigma}_{\hat{\beta}_1}}$.
+
+if H0 is true this value should not be significantly high or low.
+
+p-value: $2*P(T \geq |t|)$. Note that $T$ represents a $t$-distributed random variable with $n-2$ degrees of freedom.
+
+Decision:
+
+-   If $p-value < \alpha$, reject $H_0$. We have statistically significant evidence that $X$ is significant in predicting $Y$ **through a linear relationship**.
+
+-   If $p-value \geq \alpha$, do not reject $H_0$. We do not have statistically significant evidence that $X$ is significant in predicting $Y$ **through a linear relationship**.
+
+#### Example
+
+Conduct a hypothesis test for a significant linear relationship between age and systolic blood pressure. Assume $\alpha = 0.05$.
+
+H0: B1 = 0
+
+HA: B1 $\neq 0$
+
+```{r}
+summary(mod)$coefficients
+
+```
+
+T = 4.618
+
+P-value = 7.687 x 10\^-5, so we reject H0 at alpha = 0.05, and we conclude that we have a statistically significant linear relationship between age and systolic blood pressure
+
+#### Interpretations of hypothesis test
+
+If $H_0: \beta_1 = 0$ is rejected, this does NOT necessarily mean that the underlying relationship between $X$ and $Y$ is linear. Similarly, if $H_0: \beta_1 = 0$ is not rejected, this does NOT necessarily mean that their is no relationship between $X$ and $Y$.
+
+Consider the drug concentration dataset where we are interested in modeling the amount of concentration of the drug left in the body after a certain number of hours. Let's look at a scatterplot of the dataset.
+
+This proves the importance of checking assumptions.
+
+```{r}
+```
+
+Clearly, the relationship does not appear to be linear. Now, let's look at the results of the linear model regressing drug concentration on number of hours.
+
+```{r}
+```
+
+### Confidence Intervals for $\mu_{Y|X}$ for $X = x_0$
+
+Suppose we are interested in inference for $\mu_{Y|x_0}$, the mean of $Y$ for all members of the population for a given value of $X$ ($x_0$). We have already shown an estimate of $\mu_{Y|x_0}$, $$\hat{\mu}_{Y|x_0} = \hat{\beta}_0 + \hat{\beta}_1 x_0 = \bar{Y} + \hat{\beta}_1(x_0 - \bar{X})$$
+
+The variance of $\hat{\mu}_{Y| x_0}$ is $$\text{Var}(\hat{\mu}_{Y | x_0}) = \text{Var}(\bar{Y}) + (x_0 - \bar{X})^2 \text{Var}(\hat{\beta}_1) = \sigma^2\left(\frac{1}{n} + \frac{(x_0 - \bar{x})^2}{(n-1)s_x^2}\right)$$
+
+Using the properties of the CLT, and substituting $\hat{\sigma}^2$ for $\sigma^2$, we state that $$\frac{\hat{\mu}_{Y|x_0} - \mu_{Y|x_0}}{\sqrt{\hat{\text{Var}}(\hat{\mu}_{Y|x_0})}} \sim t_{df=n-2}.$$ Therefore, we can calculate a $C = 100\times(1-\alpha)$% confidence interval for $\mu_{Y|x_0}$ as $$\hat{\mu}_{Y|x_0} \pm t_{1-\frac{\alpha}{2},n-2}\times \sqrt{\hat{\text{Var}}(\hat{\mu}_{Y|x_0})}.$$
+
+#### Example
+
+Calculate and interpret a 90% confidence interval for the mean systolic blood pressure for all 55 year olds.
+
+```{r}
+#quick way to do it 
+# we can use the predict function 
+newdata <- data.frame(Age = 55)d
+predict(mod,newdata,interval="confidence",level=0.9)
+
+```
+
+145.68,158,54.
+
+We are 90% confident that the average systolic blood pressure for 55 year olds is between 145.68 and 158.54 mm/Hg.
+
+#### Visualization of confidence intervals (bands) for $\mu_{Y|X}$
+
+```{r, echo=FALSE}
+mod <- lm(SBP ~ Age,bloodpressure)
+new_x <- seq(min(bloodpressure$Age),max(bloodpressure$Age),length.out=100)
+new.dt <- data.frame(Age=new_x)
+preds <- predict(mod,newdata=new.dt,interval="confidence",level=0.9)
+plot(SBP ~ Age,bloodpressure)
+abline(mod)
+lines(x=new_x,y=preds[,2],lty="dashed",col="blue")
+lines(x=new_x,y=preds[,3],lty="dashed",col="blue")
+```
+
+-   The difference between the lower and upper confidence bands is narrowest at the sample mean of $x$, $\bar{x}$. The bands start to widen as we get further away from $\bar{x}$.
+
+### Prediction Intervals for $Y$ for $X = x_0$
+
+Perhaps instead of calculating an interval for the mean of $Y$ for all individuals where $X = x_0$, we are interesting in an interval for a single individual where $X = x_0$. Note that the variance of an estimate for a single individual naturally is **larger** than the variance of an estimate for a group of individuals. $$Y_{x_0} = \mu_{Y|x_0} + \epsilon = \beta_0 + \beta_1 x_0 + \epsilon.$$
+
+Naturally, the prediction is the same as before, $\hat{Y}_{x_0} = \hat{\mu}_{Y|x_0} = \hat{\beta}_0 + \hat{\beta}_1 x_0$, but we now have to incorporate two sources of variability
+
+-   the uncertainty in the estimate of the mean $\mu_{Y|X_0}$ and
+
+-   the variability in the errors $\epsilon$.
+
+So now we have, $\text{Var}(\hat{Y}_{x_0}) = \text{Var}(\hat{\mu}_{Y|x_0}) + \text{Var}(\epsilon) = \sigma^2\left(1 + \frac{1}{n} + \frac{(x_0 - \bar{x})^2}{(n-1)s_X^2}\right)$
+
+Using these pieces of information, we can say that $$\frac{\hat{Y}_{x_0} - \mu_{Y|x_0}}{\sqrt{\hat{\text{Var}}(\hat{Y}_{x_0})}} \sim t_{df=n-2}.$$
+
+Therefore, we can calculate a $C = 100\times(1-\alpha)$% **prediction** interval for and individual $Y$ as $$\hat{Y}_{x_0} \pm t_{1-\frac{\alpha}{2},n-2}\times \sqrt{\hat{\text{Var}}({\hat{Y}_{x_0})}}.$$
+
+#### Example
+
+Calculate and interpret a 90% prediction interval for the systolic blood pressure of a randomly selected 55 year old.
+
+```{r}
+predict(mod,newdata,interval = "prediction",level = 0.9)
+```
+
+121.97 and 182.26. We are 90% confident that the systolic blood pressure for a randomly selected individual is between 121.97 and 182.26 mm/Hg.
+
+#### Visualization of prediction intervals (bands) for $Y$
+
+```{r, echo=FALSE}
+new_x <- seq(min(bloodpressure$Age),max(bloodpressure$Age),length.out=100)
+new.dt <- data.frame(Age=new_x)
+preds <- predict(mod,newdata=new.dt,interval="confidence",level=0.9)
+preds2 <- predict(mod,newdata=new.dt,interval="prediction",level=0.9)
+plot(SBP ~ Age,bloodpressure)
+abline(mod)
+lines(x=new_x,y=preds[,2],lty="dashed",col="blue")
+lines(x=new_x,y=preds[,3],lty="dashed",col="blue")
+lines(x=new_x,y=preds2[,2],lty="dashed",col="red")
+lines(x=new_x,y=preds2[,3],lty="dashed",col="red")
+```
+
+-   Just like the confidence interval, the prediction interval will be narrowest at the sample mean of $x$ ($\bar{x}$).

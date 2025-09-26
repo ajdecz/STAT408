@@ -1,0 +1,215 @@
+---
+title: "Homework 3"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+Please upload an html/pdf to Sakai by Wednesday, September 24, at 6 pm.
+
+1.  Use the below degrees of freedom and sums of squares from ANOVA tables from a multiple linear regression with three explanatory variables to answer the following questions.
+
+-   Model 1: $X_1$ as only explanatory variable
+
+|       | df  | Sums of Squares |
+|-------|:----|:----------------|
+| Model | 1   | 2469.18         |
+| Error | 48  | 3766.14         |
+
+-   Model 2: $X_1$ and $X_2$ as explanatory variables
+
+|       | df  | Sums of Squares |
+|-------|:----|:----------------|
+| Model | 2   | 3647.83         |
+| Error | 47  | 2587.49         |
+
+-   Model 3: $X_1$, $X_2$, and $X_3$ as explanatory variables
+
+|       | df  | Sums of Squares |
+|-------|:----|:----------------|
+| Model | 3   | 4348.22         |
+| Error | 46  | 1887.10         |
+
+a.  What are the total sums of squares and the sample variance of the response variable?
+
+    The total sums of squares of the responsve variable is $6235.32$ and the sample variance of the response variable is $127.35$
+
+```{r}
+dfm1 <- 1
+dfe1 <- 48 
+ssm1 <- 2469.18
+sse1 <- 3766.14
+
+# calculate sst and dftotal
+sst <- ssm1 + sse1
+sst
+dft <- dfe1 + dfm1
+
+# find the sample variance 
+s_y2 <- sst/dft
+s_y2
+```
+
+b.  What are the additional model sums of squares when we add $X_2$ and $X_3$ to a model that includes $X_1$?
+
+    The additional model sums of squares when we add x2 and x3 to a model that includes x1 are 1178.65 when we add x2 and 700.39 when we add x2 and x3. Together they add 1879.04 to the model.
+
+```{r}
+ssm1 <- 2469.18
+ssm2 <- 3647.83
+ssm3 <- 4348.22
+
+#find additional ss
+ss_x2_given_x1 <- ssm2 - ssm1
+ss_x3_given_x1x2 <- ssm3 - ssm2
+
+ss_x2_given_x1
+ss_x3_given_x1x2
+
+total_additional_ssm <- ss_x2_given_x1 + ss_x3_given_x1x2
+
+total_additional_ssm
+
+
+```
+
+c.  What is additional percent variation in the response variable can be explained when we add $X_3$ to a model that already includes $X_1$ and $X_2$?
+
+    the additional percent variation in the response variable that can be explained when we add x3 to a model that already includes x1 and x2 is 11.23%
+
+```{r}
+(ss_x3_given_x1x2/sst) * 100
+```
+
+d.  What is the mean squared error for the linear model with $X_1$ and $X_2$ as explanatory variables?\\
+
+    $MSE_{x1x2} = 55.05$
+
+```{r}
+sse2 <- 2587.49
+dfe2 <- 47 
+mse2 <- sse2/dfe2
+mse2
+```
+
+e.  Find an F statistic and p-value for testing for overall significance of the linear model with \$X_1\$, \$X_2\$, and \$X_3\$ as explanatory variables.
+
+    $F = 35.33 , p = 5.339x10^{-12}$
+
+```{r}
+sse3 <- 1887.10
+dfm3 <- 3
+dfe3 <- 46
+
+msm3 <- ssm3 / dfm3
+mse3 <- sse3 / dfe3
+f3 <- msm3 / mse3
+f3
+pvalue3 <- 1 - pf(f3,dfm3,dfe3)
+pvalue3
+
+```
+
+f.  Find an F statistic and p-value for testing if adding $X_3$ to a linear model that already includes $X_1$ and $X_2$ is statistically significant.
+
+    $F = 17.07, p = 1.504x10^{-4}$
+
+```{r}
+dfm2 <- 2
+dfx3 <- dfm3 - dfm2
+Fx3 <- (ss_x3_given_x1x2/dfx3) / (sse3/dfe3)
+Fx3
+pvaluex3 <- 1 - pf(Fx3,dfx3,dfe3)
+pvaluex3
+```
+
+2.  Consider the dataset realestate.csv, a dataset on real estate sales in New Taipei City, which contains the following variables:
+
+-   Age: The age of the house in years
+-   MRT: The distance in meters to the nearest public transportation station
+-   Convenience: The amount of convenience stores within one kilometer of the house
+-   Latitude: The degrees north latitude of the house
+-   Longitude: The degrees east longitude of the house
+-   Price: The house sales price in millions of New Taiwan Dollars
+
+a.  Suppose we create a linear model with house price as the response variable and all of the other variables in the dataset as the explanatory variables. Perform an overall F test to determine if this overall linear model is statistically significant. Be sure to include all necessary information to perform a hypothesis test. Assume $\alpha = 0.05$.
+
+    $H_0: B_j = 0: j = 1...6$ , $H_a: \exists B_j \neq 0: j = 1…6$
+
+    $F = 108.7 p < 2.2e-16$ , we can reject the null and conclude the overall linear model using house price as the response variable and age of the house, distance in meters to the nearest public transportation station, the amount of convenience stores within one kilometer of the house, the degrees north of latitude of the house, and the degrees east of longitude of the house as explanatory variables is statistically significant.
+
+```{r}
+library(readr)
+realestate <- read_csv("~/stat408/Homework3/Data/realestate.csv")
+mod <- lm(Price ~ ., realestate)
+summary(mod)
+```
+
+b.  Check if the assumptions of homoscedasticity and normally distributed residuals are violated for the model in (a).
+
+    While the residual plot shows signs of heteroscedasticity, the Breusch-Pagan test resulted in a pvalue larger than .05, according to these results homoscedasticity would not be violated.
+
+    However, the Q-Q plot shows deviations on one end of the plot and the Kolmogrov-Smirnov test resulted in a pvalue less than .05, and we can conclude the assumption of normally distributed results is violated.
+
+```{r}
+#homoscedasticity
+plot(mod,1)
+library(lmtest)
+bptest(mod)
+
+#normality
+plot(mod,2)
+ks.test(rstandard(mod), "pnorm")
+```
+
+c.  Report and interpret the $r^2$ for the overall linear model in the context of the problem.
+
+    $r^2 = 0.5712$ , The model explains 57.12% of the variability in sales based on the predictors (Age, MRT, Convenience, Longitude, Latitude) included in the model. This indicates that the predictors are strongly associated with the outcome, although 42.88% of the variability remains unexplained by the model.
+
+```{r}
+summary(mod)$r.squared
+```
+
+d.  Suppose we know that sales price is linearly related with age of the house.
+
+(i). Perform a hypothesis test to determine if adding at least one other variable to our linear model significantly improves the predictive ability of our model. Be sure to include all necessary information to perform a hypothesis test. Assume $\alpha = 0.05$.
+
+$H_0: \beta_j = 0: j = 2 … 6 , H_a: \exists \beta_j \neq 0: j = 2 … 6$
+
+$F = 125.31 , p < 2.2e-16$ , therefore we reject the null and can conclude that adding at least one other variable to our linear model relating price to age of the house significantly improves the predictive ability of our model.
+
+```{r}
+mod_red <- lm(Price ~ Age, realestate)
+mod_full <- lm(Price ~ ., realestate)
+anova(mod_red,mod_full)
+```
+
+(ii). Perform a hypothesis test to determine if adding amount of convenience stores to our linear model that already includes age of the house significantly improves the predictive ability of our model. Be sure to include all necessary information to perform a hypothesis test. Assume $\alpha = 0.05$.
+
+$H_0: \beta_j = 0: j = 2 … 6 , H_a: \exists \beta_j \neq 0: j = 2 … 6$
+
+$F = 225.85, p < 2.2e-16$ therefore we can reject the null hypothesis and conclude that adding the amount of convenience stores within one kilometer of the house as an explanatory variable to a linear model that already includes age of the house as an explanatory variable significantly improves the predictive ability of our model.
+
+```{r}
+mod_full2 <- lm(Price ~ Age + Convenience, realestate)
+anova(mod_red, mod_full2)
+```
+
+(iii). What is the additional percent variation in sales price of houses in New Taipei City than can be explained by adding *only* amount of convenience stores to our linear model that already includes age of the house.
+
+The additional percent variation in sales price of houses in New Taipei City that can be explained by adding only amount of convenience stores within one kilometer of the house as an explanatory variable to our linear model that already includes age of the house as an explanatory variable is $33.89\%$
+
+Meaning that when we add the number of convenience stores within one kilometer as an explanatory variable to a model that already includes the age of the house as an explanatory variable, the model's explanatory power increases substantially (33.89%). This suggests that proximity to a convenience store is a strong predictor of housing prices in New Taipei City, in fact the model that includes both age and convenience store count can explain about a third more of the variation in housing prices alone.
+
+```{r}
+mod_red_r2 <- summary(mod_red)$r.squared
+mod_full2_r2 <- summary(mod_full2)$r.squared
+add_var <- mod_full2_r2 - mod_red_r2
+add_percent_var <- add_var * 100
+add_percent_var
+```

@@ -1,0 +1,212 @@
+---
+title: "Influential Observations and Multicollinearity"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+**Influential Observations**: Observations that *may* influence the estimation of the least squares regression line.
+
+## Example
+
+Recall the blood pressure dataset from the simple linear regression notes. Determine visually if you think their might be any influential observations.
+
+there is a point at 47,220 that is very different from the rest of the points
+
+```{r}
+library(readr)
+bloodpressure <- read_csv("Data/bloodpressure.csv")
+plot(SBP ~ Age, bloodpressure)
+```
+
+**Leave One Out Regression**: A new regression line where one observation is intentionally left out.
+
+The leave one out least squares regression when observation $i$ is left out for $i = 1,\dots,n$ gives regression estimates $\hat{\beta}_{0,(-i)}$ and $\hat{\beta}_{1,(-i)}$ and any other regression parameters and an estimate of the regression variance/mean squared error $\hat{\sigma}_{-i}^2$. These estimates will help us to identify which points have the highest influence on the original least squares regression line.
+
+**Leverage**($h_i$): A measure of the extremeness of the observed explanatory variables to their means.
+
+-   These are defined mathematically as $h$ because they are also called "hat-values"
+
+How are leverage values $h_i$ calculated?
+
+-   Hat (projection) matrix $\boldsymbol{H} = \boldsymbol{X} (\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'$
+
+Note: $\hat{\boldsymbol{y}} = \boldsymbol{X}\hat{\boldsymbol{\beta}} = \boldsymbol{X}(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{y}= \boldsymbol{H}\boldsymbol{y}$
+
+-   $h_i$ is the $i^{th}$ diagonal element of $\boldsymbol{H}$
+
+-   $h_i$ can be thought of as the "weighted distance" from $\boldsymbol{x}_i$, the values of the explanatory variables for observation $i$ to their respective sample means.
+
+```{r}
+# note the potential influential observation is the 2nd in the dataset. 
+mod <- lm(SBP ~ Age, bloodpressure)
+hatvalues(mod) #extracts the leverage values based off the explanatory variables
+#higher leverage is a further distance 
+```
+
+because age = 47 is relatively close to the average age of the dataset, it has a low leverage value.
+
+On their own, leverages cannot determine which observations are influential, but they are used to determine methods for which they can help determine them
+
+**Standardized Residuals**: $\hat{z}_i$, the observed residuals scaled by the estimate of the regression standard deviation $$\hat{z}_i = \frac{\hat{\epsilon}_i}{\hat{\sigma}} = \frac{y_i - \hat{y}_i}{\hat{\sigma}}$$
+
+-   Think about creating z-scores from the least squares regression line.
+
+**Studentized Residuals**: $\hat{r}_i$, the standardized residual scaled by a factor related to the leverage $$\hat{r}_i = \frac{\hat{z}_i}{\sqrt{1 - h_i}} = \frac{\hat{\epsilon}_i}{\hat{\sigma}\sqrt{1 - h_i}}$$
+
+## Example
+
+Plot the studentized residuals for the blood pressure dataset against the predictions from the least squares regression line $\hat{y}_i$ for $i = 1,\dots,n$
+
+```{r}
+#fitted extracts the fitted values from a linear model 
+#rstudent extracts the studentized residuals from a linear model 
+plot(fitted(mod),rstudent(mod))
+```
+
+-   Clearly, we have an outlier with a point that has a studentized residual of around 8, while the others are between -2 and 2. that observation is extremely high when compared to its prediction scaling for the standard deviation and leverage.
+
+How do we determine numerically which points are influential observations?
+
+We can say that $$\hat{z}_i = \frac{y_i - \hat{y}_i}{\hat{\sigma}} \sim t_{df = n-k}.$$
+
+Similarly, we can say that $$\hat{r}_i \sim t_{df = (n-1)-k}$$
+
+The $(n-1)-k$ degrees of freedom incorporates the fact that the studentized residuals use the leverage values from leave one out regression.
+
+So, the influential points according to studentized residuals are points where $|\hat{r}_i| > t_{1-\frac{\alpha}{2},(n-1)-k}$ where $t_{1-\frac{\alpha}{2},(n-1)-2}$ is the $(1 - \frac{\alpha}{2})^{th}$ quantile from a $t$-distribution with $(n-1)-k$ degrees of freedom.
+
+-   This is basically like doing a t-test at each individual point (we are comparing the studentized residuals to a critical value from the $t$-distribution.
+-   because we want more certainty that a point is influential we will typically use $\alpha = .01$
+-   we will only test the highest absolute studentized residual each time so we do not remove too many data points
+
+## Example
+
+Let's see if there are any influential observations for the blood pressure dataset with $\alpha = 0.01$. (For determining influential observations, we will typically use $\alpha = 0.01$.)
+
+```{r}
+# start with the highest studentized residual 
+rstud <- rstudent(mod)
+id <- which.max(abs(rstud))
+n <- nrow(bloodpressure)
+k <- 2 
+alpha <- 0.01 
+crit <- qt(1-alpha/2,n-1-k)
+abs(rstud)[id] > crit
+# the studentized residual for observation 2 is larger than the critical value
+
+```
+
+because the studentized residual for observation 2 is larger than the critical value it should be removed from the dataset.
+
+We want to remove only one observation at a time. Removing the largest studentized residuals may make other studentized residuals within the critical range.
+
+-   If you have more than one identified influential observation, remove the observation with the highest absolute studentized residual.
+
+Let's see what the regression line looks like with the influential point removed
+
+```{r}
+# bloodpressure [- 2] removes the second row and keeps all columns 
+mod_2 <- lm(SBP ~ Age, bloodpressure[-2,])
+summary(mod)
+summary(mod_2)
+plot(SBP ~ Age, bloodpressure)
+  abline(mod)
+  abline(mod_2, lty=2)
+#lets look at a studentized residual plot d
+plot(fitted(mod_2), rstudent(mod_2))
+```
+
+the distribution of the residuals (five-number summary) is much tighter and the Q1 and Q3 are almost mirror images for mod_2 (as expected for normal)
+
+The $r^2$ is roughly 30% higher for mod_2.
+
+root mean squared error is cut almost in half. (17.31 to 9.56)
+
+standard errors for the regression parameters also decreased
+
+the prediction lines also have a minimal difference
+
+you can do another test to see if the next point with the highest absolute studentized residual is significantly influential and continue (for this problem it is not)
+
+**Cook's Distance**: A measure of how much the regression coefficients change when an observation is deleted. $$d_i = \sum_{j=0}^{k-1}(\hat{\beta}_j - \hat{\beta}_{j,(-i)})^2$$ $=r_i \left(\frac{1}{2}\right)\left(\frac{h_i}{1-h_i}\right)$
+
+-   **Note**: Cook's distance may be large because $x_i$ is large relative to its mean (i.e. high leverage $h_i$) or because the studentized residual, $\hat{r}_i$, is high. Typically, $d_i > 1$ means that observation may warrant additional analysis, but choosing to remove an observation cannot be determined by $d_i$ on its own.
+
+-   **Note**: A cutoff value of $\frac{4}{n - k - 1}$ is typically used to test for influential observations using Cook's Distance, although this is rather arbitrary and not an industry standard.
+
+## Example
+
+Let's see if there are any influential observations for the blood pressure dataset using Cook's Distance.
+
+```{r}
+# plot(mod,4) plots each point by its cooks distance
+plot(mod,4)
+# lets compare the cooks distane for observation 2 to the 4/(n-k-1) cutoff
+cooks.distance(mod)[2] > 4/(n-k-1)
+```
+
+only test one point at a time
+
+**Multicollinearity**: A phenomenon in regression modelling where more than two of the independent/explanatory variables in a model are correlated.
+
+Consider the following multiple linear regression model:
+
+$$Y = \beta_0 + \sum_{j=1}^{k-1} \beta_j X_j + \epsilon,$$ Now lets assume that $X_1$ is perfectly linearly related with $X_2$,
+
+$$X_1 = \lambda_0 + \lambda_1 X_2$$ All of the points fall directly on a straight line. Then, the regression model becomes
+
+$$Y = \beta_0 + \sum_{j=1}^{k-1} \beta_j X_j + \epsilon$$ $$ = \beta_0 + \beta_1(\lambda_0 + \lambda_1X_2) + \sum_{j=2}^{k-1}\beta_jX_j + \epsilon$$
+
+$$ = (\beta_0 + \beta_1\lambda_0) + (\beta_1\lambda_1 + \beta_2)X_2 + \sum_{j=3}^{k-1} \beta_j X_j + \epsilon$$
+
+-   The above model has $k-2$ explanatory variables and $k+2$ model parameters (\$k\$ $\beta$s and 2 $\lambda$s.)
+
+-   Because we have more parameters than explanatory variables (and an intercept) this model becomes **unidentifiable** because we have an infinite number of ways to minimize the sum of squared errors.
+
+-   If a linear model is not identifiable, then there is more than one solution to the least squares method of finding estimates of the $\beta$s
+
+-   If any of the explanatory variables are related linearly with another explanatory variable, this can cause an issue of *identifiability*.
+
+-   If there is an issue of identifiability, the estimates of the regression parameters ($\beta$s) are not unique.
+
+-   in reality unless you are dealing with a cateogorical variable these variables will almost never be perfectly multicolinear, but it stilll poses an issue.
+
+    **Variance Inflation Factor (VIF)**: The VIF for explanatory variable $X_j$ is the ratio of the variance for a linear regression model with multiple explanatory variables against a linear regression model that only includes $X_j$.
+
+You can say it is comparing the mean squared error of
+
+Reduced Model: $\hat{Y} = \beta_0 + \beta_jX_j$ vs.
+
+Full Model: $\hat{Y} = \beta_0 + \beta_1 X_1 + \dots + \beta_jX_j + \dots + \beta_{k-1}X_{k-1}$
+
+Mathematically, $$VIF(j) = \frac{1}{1 - r_j^2},$$ where $r_j^2$ is the r-squared for a linear model for $X_j$ with all of the other explanatory variables as covariates. Note, this may not always be true because some variables may be categorical.
+
+*Note*: Because $r_j^2$ is a number between 0 and 1, $VIF(j) > 1$
+
+-   If $1 < VIF(j) \leq 5$, then there is no signficant evidence of multicollinearity for variable $X_j$
+
+-   If $5 < VIF(j) \leq 10$, then there is moderate evidence of multicollinearity for variable $X_j$, and we should start to consider excluding $X_j$ from our linear model
+
+-   If $VIF(j) > 10$, then there is significant evidence of multicollinearity for variable $X_j$, and we should definitely consider excluding $X_j$ from our linear model
+
+Let's look at the VIF values for the health expenditures data set for a linear model where we want to predict health expenditures not covered by health insurance using a certain subset of the other variables as explanatory variables.
+
+there is GVIF in the dataset because we have some categorical variables. You should pay attention to the final column (GVIF\^(1/2\*df)), this adjusts for the degrees of freedom added to the model
+
+all of teh GVIF values are very close to 1, so no issue of multicollinearity in the dataset
+
+should you remove a variable if it has high multicollinearity? Maybe, this gives you something to monitor.
+
+```{r}
+# Need library(regclass) to run the VIF function
+library(regclass)
+health <- read.csv("Data/insurance.csv")
+mod <- lm(charges ~ ., health)
+VIF(mod)
+```

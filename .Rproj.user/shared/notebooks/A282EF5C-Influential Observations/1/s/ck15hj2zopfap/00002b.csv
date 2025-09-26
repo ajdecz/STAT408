@@ -1,0 +1,8 @@
+"0","# lets compare the cooks distane for observation 2 to the 4/(n-k-1) cutoff"
+"0","cooks.distance(mod)[2] > 4/(n-k-1)"
+"1","   2 "
+"1","
+"
+"1","TRUE "
+"1","
+"

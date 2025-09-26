@@ -1,0 +1,586 @@
+---
+title: "Multiple Linear Regression"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+```{r setup, include = TRUE, echo = FALSE}
+# This line of code tells the document all the display defaults
+knitr::opts_chunk$set(echo = TRUE, include = TRUE, fig.align="center",warnings = FALSE,fig.width = 8,fig.height=8)
+```
+
+**Multiple Linear Regression**: An extension of simple linear regression into where we can estimate a response variable $Y$ based on multiple explanatory variables $X_1,X_2,\dots,X_{k-1}$. $k-1$ is the number of explanatory variables in our linear structure.
+
+## Assumptions Needed for Multiple Linear Regression Models
+
+(Note, these assumptions are the same for simple linear regression, just extended to multiple linear regression)
+
+-   Existence
+
+-   Independence
+
+-   Linearity: $\mu_{Y|\boldsymbol{X}} = \beta_0 + \beta_1X_{i,1} + \beta_2X_{i,2} + \dots + \beta_{k-1}X_{i,k-1}$
+
+-   Homoscedasticity: $\sigma_{Y|\boldsymbol{X}}^2 = \sigma^2$
+
+-   Normality
+
+## "Least squares" regression estimate
+
+Define the following: $$\boldsymbol{y}_{n \times 1} = \begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_n \end{bmatrix}$$
+
+$$\boldsymbol{X}_{n \times k} = \begin{bmatrix} 1 & x_{1,1} & x_{1,2} & \cdots & x_{1,k-1} \\ 1 & x_{2,1} & x_{2,2} & \cdots & x_{2,k-1} \\ \vdots & \vdots & \vdots & \ddots & \vdots \\ 1 & x_{n,1} & x_{n,2} & \cdots & x_{n,k-1} \end{bmatrix}$$
+
+$$\boldsymbol{\beta}_{k \times 1} = \begin{bmatrix} \beta_0 \\ \beta_1 \\ \vdots \\ \beta_{k-1} \end{bmatrix}$$
+
+$$\boldsymbol{\epsilon}_{n \times 1} = \begin{bmatrix} \epsilon_1 \\ \epsilon_2 \\ \vdots \\ \epsilon_n \end{bmatrix}$$
+
+$\boldsymbol{y}$ is the vector of responses, $\boldsymbol{X}$ is our design matrix/regression matrix, $\boldsymbol{\beta}$ is the parameter vector, and $\boldsymbol{\epsilon}$ is the vector of the errors/residuals.
+
+Combining these definitions and assumptions, we have:
+
+$$\boldsymbol{y} = \boldsymbol{X}\boldsymbol{\beta} + \boldsymbol{\epsilon},$$ $$\boldsymbol{\epsilon} \sim \mathcal{N}(\boldsymbol{0},\sigma^2 \boldsymbol{I}_{n\times n}),$$
+
+where $\boldsymbol{I}_{n \times n}$ is an $n \times n$ identity matrix (the notation for when we assume observations are independent), and the estimates of $\boldsymbol{\beta}$ are the values that minimize the sum of squared errors:
+
+$$\hat{\boldsymbol{\beta}} = \min_\boldsymbol{\beta} \sum_{i = 1}^n (y_i - \boldsymbol{X}_i \boldsymbol{\beta})^2 = \min_{\boldsymbol{\beta}} (\boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta})'(\boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta}),$$ where $\boldsymbol{X}_i$ is the $i^{th}$ row of the matrix $\boldsymbol{X}$.
+
+-   Recall, to minimize a function we want to take its derivative and set it equal to 0. However, we need to take the derivative of the sum of squared errors with respect to all of the model parameters. In statistics, this calculation of multiple derivatives is called the **gradient**. So, $\hat{\boldsymbol{\beta}}$ is the value of $\boldsymbol{\beta}$ where
+
+$$
+2\boldsymbol{X}'(\boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta}) = \boldsymbol{0}
+$$
+
+Performing some arithmetic and calculus, we can say that
+
+$$\hat{\boldsymbol{\beta}} = (\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{y}$$
+
+### Example
+
+e.g. $\beta$ is a single parameter, Beta hat is the value that minimizes Sum((yi - xiBeta)\^2).
+
+$S = \sum 2(y_i - x_i \beta)$
+
+In the data folder, there is a dataset on health expenditures not covered by insurance along with several factors about the policyholders. Find a least squares regression model for predicting health care expenditures by all of the other variables in the dataset.
+
+```{r}
+
+health <- read.csv("Data/insurance.csv")
+#mod <- lm(charges ~ age + sex + bmi + children + smoker + region, health)
+# this is the long way above 
+mod <- lm(charges ~ . , health) #period means include every other variable in the dataset 
+summary(mod)$coefficients
+
+```
+
+To account for categorical variables, we will define **indicator variables** about which category a particular individual identifies.
+
+**Note**: There are two possible values of smoker in the dataset, but only one value is included in the regression line. Why is that? Because we are comparing to the baseline which would be smokerno, and R decides what would be the baseline based on alphabetical order.
+
+-   if we include every possible category there is no solution for beta-hat
+
+```{r}
+#lets create a design matrix with an intercept and indicator variables for both possibilites for smoker 
+#X_smk <- model.matrix(~ 0 + smoker,health)
+#add the intercept 
+#X <- cbind(1,X_smk) #cbind combines two matrices by column 
+#lets see what hhappens when we try to calculate (X'X)^-1
+#note t does the transpose and c does the inversion 
+#solve(t(X)%*% X) #cannot calculate the inverse 
+#X_smk
+```
+
+If smokeryes = 0 then we must know they are not a smoker
+
+If smokeryes = 1 then they are a smoker
+
+If regionnorthwest = 1 then they are from the north west
+
+If regionsoutheast = 1 then they are from the south east
+
+If regionsouthwest = 1 then they are from the south west
+
+If all region indicator variables = 0 then they are from the remaining region, northeast.
+
+The category that is omitted as an indicator variable is called the baseline category. By default r chooses the baseline to to be the first category by alphabetical order
+
+```{r}
+#do the same for the student performance dataset (for fun on plane)
+sp_data <- read.csv("~/stat408/Homework1/Data/Student_Performance.csv")
+#comparing student performance to all other variables 
+mod2 <- lm(Performance.Index ~ . ,sp_data)
+summary(mod2)$coefficients
+
+#BP test
+plot(mod2,1)
+library(lmtest)
+bptest(mod2)
+#not violated
+
+#Q-Q plot and normally distributed results 
+plot(mod2,2)
+ks.test(rstandard(mod2), "pnorm")
+#not violated
+
+#lets try teh lifeexp 
+```
+
+## Interpretation of multiple linear regression parameters
+
+To account for multiple explanatory variables, when interepreting a $\beta$ associated with a particular explanatory variable $X$, we need to include the phrase **holding all other variables constant**
+
+For the interpretation of the intercept ($\beta_0$), we need to state the fact that this is the predicted value of the response ($\hat{Y}$) when **all of the numeric explanatory variables are equal to 0** and **all of the categorical explanatory variables are equal to their baseline values**
+
+### Example
+
+Interpret the parameter associated with the variable smokeryes in the context of the problem.
+
+$\hat{\beta}_{smokeryes} = 23848.53$ , the expected health expenditures not covered by insurance are \$23848.53 dollars more for smokers than for non-smokers, holding all other variables constant
+
+Interpret the parameter associated with the variable bmi in the context of the problem.
+
+$\hat{beta}_{bmi} = 339.19$ , for a 1 $kg/m^2$ increase in BMI, the expected health expenditures not covered by insurance increases by \\\$339.19, holding all other variables constant.
+
+Interpret the parameter associated with regionnorthwest in the context of the problem.
+
+$\hat{beta}_{regionnw} = -352.96$ , (only comparing northwest and the northeast) indicator would be 1 if they are nw, 0 if they are northeast (simply because NE is the baseline) The expected health expenditures not covered by insurance are \\\$352.96 less in the northwest region compared to the northeast region
+
+Notes:
+
+-   for numeric variables, syntax for interpretation is the same as simple linear regression
+
+-   For categorical variables, we are comparing that category to the baseline category
+
+```{r}
+#let's show the linear algebra 
+X <- model.matrix(charges ~ . , health)
+y <- health$charges 
+beta <- solve(t(X) %*% X) %*% t(X) %*% y
+beta
+
+
+
+```
+
+## Checking for assumptions of multiple linear regression
+
+The methods of checking the assumptions of homoscedasticity and normally distributed residuals for multiple linear regression are the exact same as the methods for simple linear regression! YAY
+
+### Example
+
+Determine if the assumptions for homoscedasticity and normally distributed residuals for the insurance charges multiple linear regression model are violated.
+
+```{r}
+# Homoscedasticity 
+plot(mod,1)
+library(lmtest)
+bptest(mod)
+#Violated!!!!
+
+#normality
+plot(mod,2)
+ks.test(rstandard(mod), "pnorm")
+#VIOLATED
+
+
+```
+
+# Confidence Intervals for Model Parameters
+
+Recall the "least squares" regression estimate of $\boldsymbol{\beta}$ is $$\hat{\boldsymbol{\beta}} = (\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{X}'\boldsymbol{y}$$
+
+It can be shown that the variance-covariance matrix of our estimate is $$\text{Var}(\hat{\boldsymbol{\beta}}) = \sigma^2(\boldsymbol{X}'\boldsymbol{X})^{-1} $$
+
+-   The diagonal elements produce the variances of our model parameters (i.e. the $1^{st}$ diagonal element is the variance of the intercept $\hat{\beta}_0$, the second element is the variance of the first slope $\hat{\beta}_1$, etc.
+
+-   The off-diagonal elements produce the covariance of model parameters (i.e. we can calculate if they are significantly correlated or not)
+
+**Mean Squared Error:** $\text{MSE} = \hat{\sigma}^2 = \frac{\text{SSE}}{dfE} = \frac{1}{n - k} (\boldsymbol{y} - \boldsymbol{X}\hat{\boldsymbol{\beta}})'(\boldsymbol{y} - \boldsymbol{X}\hat{\boldsymbol{\beta}})$
+
+Substituting in $\hat{\sigma}^2$ for $\sigma^2$ and using similar definitions for the distributions of our model parameters that we used in simple linear regression, then for $j = 0,1,\cdots,k-1$, we can say
+
+$$
+\frac{\hat{\beta}_j - \beta_j}{\hat{\sigma}_{\hat{\beta}_j}} \sim t_{df = n-k}
+$$
+
+where $\hat{\sigma}_{\hat{\beta}_j}$ is the corresponding value of the standard deviation from $\hat{\text{Var}}(\hat{\boldsymbol{\beta}})$.
+
+A corresponding $100 \times (1 - \alpha)$% confidence interval for $\beta_j$ can be written as
+
+$$\hat{\beta}_j \pm t_{1-\frac{\alpha}{2},n-k}^* \times \hat{\sigma}_{\hat{\beta}_j}$$
+
+### Example
+
+Recall our multiple linear regression for the insurance charges dataset.
+
+-   Calculate the variance-covariance matrix for the parameter estimates $\hat{\boldsymbol{\beta}}$.
+
+-   Calculate and interpret a 95% confidence interval for the parameter associated with bmi.=
+
+    we are 95% confident that the bmi
+
+-   FOR CONFIDENCE INTERVALS SAY THE EXPECTED VALUE IS CHANGIN
+
+-   Calculate and interpret a 90% confidence interval for the parameter associated with the southwest region.
+
+```{r}
+# Vcov by hand 
+SSE <- t(y-X %*% beta) %*% (y-X %*% beta)
+dfE <- 1338 -9 #n = 1338, k = 9
+MSE <- (SSE/dfE) [1,1] #extract the scalar
+V <- MSE * solve(t(X) %*% X)
+V
+#compare this to R
+#vcov(mod) #exactly the same 
+
+#95% confidence interval for bmi 
+est <- beta["bmi",1]
+seest <- sqrt(V["bmi", "bmi"])
+crit <- qt(1-0.05/2, df=dfE)
+est + c(1,1) * crit * seest
+confint(mod,"bmi", level = 0.95)
+
+confint(mod, "regionsouthwest", level = 0.9)
+```
+
+for BMI, (283.09, 395.30): we are 95% confident that a 1 kg/m\^2 increase in bmi, the expected health expenditures not covered by health insurance increases by between \\\$283.09 and \\\$395.30, holding all other variables constant.
+
+for regionsouthwest (-1746.73, -173.37): we are 90% confident that the expected health expenditures not covered by health insurance is \$173.37 to \$1746.63 less for residents in the southwest region compared to the northeast region, holding all other variables constant.
+
+# Hypothesis Testing
+
+## Overall Significance
+
+Recall, the method for testing for a significant linear relationship in simple linear regression.
+
+Reduced Model: $\hat{Y} = \beta_0$
+
+Full Model: $\hat{Y} = \beta_0 + \beta_1X$
+
+The null and alternative hypotheses are:
+
+$$H_0: \beta_1 = 0$$
+
+$$H_a: \beta_1 \neq 0$$
+
+What is this equivalent in multiple dimensions?
+
+**Example:** Consider the below graph for charges not covered by insurance by bmi where the points are colored by sex
+
+```{r, echo=FALSE}
+library(tidyverse)
+insurance <- read.csv("Data/insurance.csv")
+mod <- lm(charges ~ 1,insurance)
+mod2 <- lm(charges ~ sex + bmi,insurance)
+insurance %>% 
+  mutate(pred_charges = mod$fitted.values,
+         pred_charges2 = mod2$fitted.values) %>%
+  ggplot(aes(x=bmi,y=charges,colour=sex)) +
+  geom_point(size=0.5) +
+  geom_line(aes(y=pred_charges),colour="black",lty=2) +
+  geom_line(aes(y=pred_charges2))
+```
+
+Recall the ANOVA table:
+
+This would correspond to
+
+Reduced model : $\hat{charges} = \beta_0$
+
+Full Model: $\hat{charges} = \beta_0 + \beta_1 bmi + \beta_2 sexmale$
+
+$H_0: \beta_1 = \beta_2 = 0$
+
+$H_a: \text{at least one }\beta \neq 0$
+
+for a general model with k-1 explanatory variables,
+
+Reduced Model: $\hat{Y} = \beta_0$
+
+Full Model: $\hat{Y} = \beta_0 + \beta_1 X_1 + \cdots + \beta_{k-1}X_{k-1}$
+
+we are basing this off the real values which is why there is no hat, but Y has a hat because we would have to incorporate the error terms or otherwise we are just getting part of what the Y's are, therefore Y is always an estimation.
+
+$H_0: \beta_j = 0 \text{ for } j =1, \cdots, k-1$
+
+$H_a: \exists \beta_j \neq 0 \text{ for } j =1, \cdots, k-1$
+
+Recall the ANOVA table:
+
+|       | df    | Sums of Squares | Mean Square                           | F Value                           | Pr(\>f)                      |
+|------------|:-----------|:-----------|:-----------|:-----------|:-----------|
+| Model | $k-1$ | $\text{SSM}$    | $\text{MSM} = \frac{\text{SSM}}{k-1}$ | $F=\frac{\text{MSM}}{\text{MSE}}$ | $P(F_{df1=k-1,df2=n-k} > F)$ |
+| Error | $n-k$ | $\text{SSE}$    | $\text{MSE} = \frac{\text{SSE}}{n-k}$ |                                   |                              |
+| Total | $n-1$ | $\text{SST}$    |                                       |                                   |                              |
+
+This provides us test statistics and p-values for the test for overall significance of our linear regression model.
+
+-   F-statistic: $\frac{\text{Explained Variance}}{\text{Unexplained Variance}} = \frac{\text{SSM}/(k-1)}{\text{SSE}/(n-k)}$
+
+    -   $k-1$ are the model degrees of freedom
+
+    -   $n-k$ are the error degrees of freedom
+
+-   $p-value$: Calculated using an F-distribution with $k-1$ and $n-k$ degrees of freedom
+
+-   If $F$ is significantly large, then we have enough information to say the variance explained by the model is significantly larger than the variance left unexplained.
+
+-   If $p-value < \alpha$, reject $H_0$ and we conclude the linear model with our explanatory variables is statistically significantly better at predicting our response.
+
+-   If $p-value \geq \alpha$, fail to reject $H_0$ and we conclude the linear model with our explanatory variables is not statistically significantly better at predicting our response.
+
+### Example
+
+Perform a test for a significant linear regression for net charges not covered by insurance with all other explanatory variables included in the model.
+
+-note, there are 9 parameters including the intercept in our multiple linear regression model
+
+$H_0: \beta_j = 0: j = 1, \cdots,8$
+
+$H_a: \exists \beta_j \neq 0: j = 1, \cdots,8$
+
+-note: super easy to name things under the same object name, just be sure you are using the proper object in the right places.
+
+```{r}
+mod <- lm(charges ~ ., insurance)
+summary(mod)
+```
+
+$F = 500.8, p < 2.2 \times 1-^{-16},$ so we reject $H_0$ and conclude a linear regression model predicting health expenditures not covered by insurance with bmi, age, smokerstatus, number of children, and region as a explanatory variables is statistically significant.
+
+Q: from this test alone, which explanatory variables in the model are statistically significant and which ones are not?
+
+No, we do not know. All we know is that at least one variable is significant.
+
+## Partial Significance
+
+Now, suppose we know that bmi is a statistically significant explanatory variable in our linear model. Does adding any additional explanatory variables to our linear model improve the model fit?
+
+```{r, echo=FALSE}
+library(tidyverse)
+insurance <- read.csv("Data/insurance.csv")
+mod <- lm(charges ~ bmi,insurance)
+mod2 <- lm(charges ~ sex + bmi,insurance)
+insurance %>% 
+  mutate(pred_charges = mod$fitted.values,
+         pred_charges2 = mod2$fitted.values) %>%
+  ggplot(aes(x=bmi,y=charges,colour=sex)) +
+  geom_point(size=0.5) +
+  geom_line(aes(y=pred_charges),colour="black",lty=2) +
+  geom_line(aes(y=pred_charges2))
+```
+
+Reduced Model: $\hat{charges} = \beta_0 + \beta_1{bmi}$
+
+Full Model: $\hat{charges} = \beta_0 + \beta_1 bmi + \beta_2 sexmale$
+
+$H_0: \beta_2 = 0$ , $H_a: \beta_2 \neq 0$
+
+In general, for a total of $k-1$ explanatory variables and we assume the first $l-1$ variables are already included in the model ($l < k$) (i.e. the first $l-1$ are determined to be statistically significant:
+
+-   Reduced Model: $\hat{Y} = \beta_0 + \beta_1 X_1 + \cdots + \beta_{l-1} X_{l-1}$
+
+-   Full Model: $\hat{Y} = \beta_0 + \beta_1 X_1 + \cdots + \beta_{l-1} X_{l-1} + \beta_lX_l + \cdots + \beta_{k-1} X_{k-1}$
+
+$H_0: \beta_j = 0: j = 1, \cdots, k-1$
+
+$H_a: \exists \beta_j \neq 0: j = 1, \cdots, k-1$
+
+Recall, that for the reduced model:
+
+$$\text{SST} = \text{SSM}_{red} + \text{SSE}_{red}$$
+
+and for the full model:
+
+$$
+\text{SST} = \text{SSM}_{full} + \text{SSE}_{full}$
+$$
+
+when we add more explanatory variables to the linear regression model:
+
+$\text{SSE}_{full} < \text{SSE}_{reduced}$
+
+By adding additional explanatory variables to our model, we can take some sums of squares from $\text{SSE}_{red}$ and add them to our full model! In other words:
+
+$$
+\text{SSE}_{red} = \text{SSM}_{add} + \text{SSE}_{full}
+$$
+
+where
+
+-   $\text{SSM}_{add}$ are the sums of squares added to the model sums squares when going from the reduced model to the full model (i.e. $\text{SSM}_{full} = \text{SSM}_{red} + \text{SSM}_{add}$)
+
+-   $\text{SSE}_{full}$ are the sums of squares for the full model
+
+The ANOVA Table looks as follows
+
+|               | df      | Sums of Squares     | Mean Square                                         | F Value                                        | Pr(\>f)                      |
+|------------|:-----------|:-----------|:-----------|:-----------|:-----------|
+| Reduced Model | $l-1$   | $\text{SSM}_{red}$  | $\text{MSM}_{red} = \frac{\text{SSM}_{red}}{l-1}$   | $F=\frac{\text{MSM}_{red}}{\text{MSE}_{full}}$ | $P(F_{df1=l-1,df2=n-k} > F)$ |
+| Additional    | $k - l$ | $\text{SSM}_{add}$  | $\text{MSM}_{add} = \frac{\text{SSM}_{add}}{k-l}$   | $F=\frac{\text{MSM}_{add}}{\text{MSE}_{full}}$ | $P(F_{df1=k-l,df2=n-k} > F)$ |
+| Error         | $n-k$   | $\text{SSE}_{full}$ | $\text{MSE}_{full} = \frac{\text{SSE}_{full}}{n-k}$ |                                                |                              |
+| Total         | $n-1$   | $\text{SST}$        |                                                     |                                                |                              |
+
+Let's see what the ANOVA table looks like for our full linear model
+
+```{r}
+anova(mod)
+summary(mod)
+```
+
+the only values that are of interest to us are df and sums of squares
+
+Age: provides the sums of squares for a model with just age as an explanatory variable
+
+Sex: provides the SSM that are added to the model when we add sex to a linear model that already includes age
+
+bmi: provides the ssm that are added to the model when we add bmi to a linear model that already includes age and sex
+
+$F = \frac{\text{New Explained Variance}}{\text{Stil Explained Variance}} = \frac{MSM_{add}}{MSE_{full}}$
+
+p = pf(F,k-l,m-k,lower.tail=FALSE)
+
+### Example
+
+Perform a hypothesis test to determine if adding sex to a linear regression model that already includes bmi is statistically significant in predicting charges not covered by insurance.
+
+Reduced Model = $\hat{charges} = \beta_0 + \beta_1 bmi$
+
+Full Model = $\hat{charges} = \beta_0 + \beta_1 bmi + \beta_2 sexmale$
+
+$H_0: \beta_2 = 0$
+
+$H_a: \beta_2 \neq 0$
+
+```{r}
+mod_red <- lm(charges ~ bmi, health)
+mod_full <- lm(charges ~ bmi + sex,health)
+anova(mod_red, mod_full)
+```
+
+Res.df and RSS provide the error degrees of freedom and the SSE for each of the two models (reduced and full)
+
+df and SS provide the degrees of freedom and sums of squares that are added to the model ( $df_{add}$ and $SSM_{add}$ )
+
+F = 3.229 = (MSM_add / MSE_full), p = 0.07256, at $\alpha = 0.05$ , we fail to reject $H_0$ , and conclude that adding sex to a linear regression model for health expenditures not covered by insurance that already includes bmi is not statistically significant.
+
+### Example
+
+Perform a hypothesis test to determine if adding any other explanatory variable to a linear regression model that already includes bmi is statistically significant in predicting charges not covered by insurance.
+
+Reduced Model: $\hat{charges} = \beta_0 + \beta_1 bmi$
+
+Full Model: $\hat{charges} = \beta_0 + \beta_1bmi + \beta_2 age + \beta_3 children + \beta_4 smokeryes + \beta_5bmi$ etc etc for every variable you get the point august
+
+$H_0: \beta_j = 0 : j = 2 … 8$
+
+$H_a : \exists \beta_j \neq 0 : j =2 ... 8$
+
+```{r}
+mod_red <- lm(charges ~ bmi,health)
+mod_full <- lm(charges ~ ., health)
+anova(mod_red, mod_full)
+ 
+```
+
+F = 542.37 , p \< 2.2e-16, so we reject the null and conclude that adding an additional explanatory variable to the linear model for health expenditures not covered by insurance that already includes bmi is statistically significant.
+
+**One more thing!**
+
+-   If $\text{SSM}_{red} \leq \text{SSM}_{full}$, $r^2_{red} \leq r^2_{full}$
+
+-   therefore r\^2 is not a reliable indicator for whether or not a variable is statistically significant in a model
+
+-   but that doesn't mean it isn't useful.
+
+-   it can also be shown that, in a partial hypothesis test, $F = \frac{(r^2_{full} - r^2_{reduced})/(k-1)}{(1-r^2_{full})/(n-k)}$
+
+-   $r^2_{full} - r^2_{red}$ is the percent variation in $Y$ that is explained by adding variables $X_l,\cdots,X_{k-1}$ to a linear model that already includes $X_1,\cdots,X_{l-1}$
+
+# Confidence Intervals for MLR Predictions
+
+Suppose we have some values of the explanatory variables $\boldsymbol{x}_0$. The mean of the response variable for our linear model is defined as
+
+$$
+\mu_{Y|\boldsymbol{x}_0} = \boldsymbol{x}_0 \boldsymbol{\beta},
+$$
+
+an estimate of this mean is
+
+$$
+\hat{\mu}_{Y|\boldsymbol{x}_0} = \boldsymbol{x}_0 \hat{\boldsymbol{\beta}},
+$$
+
+and the variance of this estimate is
+
+$$
+\text{Var}(\hat{\mu}_{Y|\boldsymbol{x}_0}) = \sigma^2 \boldsymbol{x}_0(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}_0'.
+$$
+
+Therefore, like in simple linear regression where $\hat{\sigma}^2$ is substituted for $\sigma^2$, we can say that
+
+$$\frac{\hat{\mu}_{Y|\boldsymbol{x}_0} - \mu_{Y|\boldsymbol{x}_0}}{\sqrt{\hat{\text{Var}}(\hat{\mu}_{Y|\boldsymbol{x}_0})}} \sim t_{df=n-k},$$
+
+and we can calculate a $C = 100\times(1-\alpha)$% confidence interval for $\mu_{Y|\boldsymbol{x}_0}$ as $$\hat{\mu}_{Y|\boldsymbol{x}_0} \pm t_{1-\frac{\alpha}{2},n-k}\times \sqrt{\hat{\text{Var}}(\hat{\mu}_{Y|\boldsymbol{x}_0})}.$$
+
+### Example
+
+Assuming our full model, calculate a 95% confidence interval for the average amount of health expenditures for a 33 year old male non-smoker from the northeast region with 0 children and a bmi of 25 $kg/m^2$.
+
+```{r}
+summary(mod)
+beta <- coef(mod) #extracts coefficients from the model 
+var_beta <- vcov(mod)
+x0 <- c(1,33,1,25,0,0,0,0,0) #adding the variables in order 
+est <- x0 %*% beta
+var_est <- x0 %*% var_beta %*% (x0)
+se_est <- sqrt(var_est[1,1])
+# dfE = 1329
+crit <- qt(1-0.05/2,1329)
+est + c(-1,1) * crit * se_est
+
+#using the predict function 
+newdata <- data.frame(age = 33, sex = "male", bmi = 25, children = 0, smoker = "no", region = "northeast")
+predict(mod,newdata,interval = "confidence")
+```
+
+We are 95% confident that the average health expenditures not covered by insurance for individuals with the above characteristics (say the real characteristics of the individual) is between \\\$4031.60 and \\\$5740.89.
+
+# Prediction Intervals for MLR Predictions
+
+Similarly, we can estimate a prediction for a particular individual for a given $\boldsymbol{x}_0$ as
+
+$$
+\hat{Y}_{\boldsymbol{x}_0} = \boldsymbol{x}_0 \hat{\boldsymbol{\beta}},
+$$
+
+and the variance of this estimate is
+
+$$
+\text{Var}(\hat{Y}_{\boldsymbol{x}_0}) = \sigma^2(1 +  \boldsymbol{x}_0(\boldsymbol{X}'\boldsymbol{X})^{-1}\boldsymbol{x}_0').
+$$
+
+Therefore, like in simple linear regression where $\hat{\sigma}^2$ is substituted for $\sigma^2$, we can say that
+
+$$\frac{\hat{Y}_{\boldsymbol{x}_0} - Y_{\boldsymbol{x}_0}}{\sqrt{\hat{\text{Var}}(\hat{Y}_{\boldsymbol{x}_0})}} \sim t_{df=n-k},$$
+
+and we can calculate a $C = 100\times(1-\alpha)$% confidence interval for $Y_{\boldsymbol{x}_0}$ as $$\hat{Y}_{\boldsymbol{x}_0} \pm t_{1-\frac{\alpha}{2},n-k}\times \sqrt{\hat{\text{Var}}(\hat{Y}_{\boldsymbol{x}_0})}.$$
+
+### Example (individual person)
+
+Assuming our full model, calculate a 95% prediction interval for the amount of health expenditures for a 33 year old male non-smoker from the northeast region with 0 children and a bmi of 25 $kg/m^2$.
+
+```{r}
+#by hand you would simply add the mean sqaured error to var_est and the rest of the calculation is the same
+
+newdata <- data.frame(age = 33, sex = "male", bmi = 25, children = 0, smoker = "no", region = "northeast")
+predict(mod,newdata,interval = "prediction")
+```
+
+We are 95% confident that a randomly selected individual with the above characteristics will have health expenditures not covered by insurance between -\\\$7036.76 and \\\$16,809.25.

@@ -1,0 +1,64 @@
+"0","# Need library(regclass) to run the VIF function"
+"0","library(regclass)"
+"2","Loading required package: bestglm
+"
+"2","Loading required package: leaps
+"
+"2","Loading required package: VGAM
+"
+"2","Loading required package: stats4
+"
+"2","Loading required package: splines
+"
+"2","Loading required package: rpart
+"
+"2","Loading required package: randomForest
+"
+"2","randomForest 4.7-1.2
+"
+"2","Type rfNews() to see new features/changes/bug fixes.
+"
+"2","Important regclass change from 1.3:
+All functions that had a . in the name now have an _
+all.correlations -> all_correlations, cor.demo -> cor_demo, etc.
+
+"
+"0","health <- read.csv(""Data/insurance.csv"")"
+"0","mod <- lm(charges ~ ., health)"
+"0","VIF(mod)"
+"1","        "
+"1","     GVIF"
+"1"," Df"
+"1"," GVIF^(1/(2*Df))"
+"1","
+age     "
+"1"," 1.016822"
+"1","  1"
+"1","        1.008376"
+"1","
+sex     "
+"1"," 1.008900"
+"1","  1"
+"1","        1.004440"
+"1","
+bmi     "
+"1"," 1.106630"
+"1","  1"
+"1","        1.051965"
+"1","
+children"
+"1"," 1.004011"
+"1","  1"
+"1","        1.002003"
+"1","
+smoker  "
+"1"," 1.012074"
+"1","  1"
+"1","        1.006019"
+"1","
+region  "
+"1"," 1.098893"
+"1","  3"
+"1","        1.015841"
+"1","
+"

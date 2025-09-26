@@ -1,0 +1,154 @@
+---
+title: "Confounding and Interactions"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+## Motivating Example
+
+Consider the health expenditures dataset. Suppose we fit a linear regression model to predict health expenditures by bmi and whether or not the person is a smoker.
+
+Perform a hypothesis test to determine if adding smoker to a linear model that already includes bmi is statistically significant.
+
+Reduced Model: $\hat{charges} = \beta_0 + \beta_1{bmi}$
+
+Full Model: $\hat{charges} = \beta_0 + \beta_1{bmi} + \beta_2{smoker}$
+
+$H_0: \beta_j = 0: j = 2, H_a: \exists \beta_j \neq 0: j = 2$
+
+With the p value of the anova test from the reduced model to the full model we find that we must reject the null hypothesis test and conclude that adding smoker to a linear model that already includes bmi is statistically significant in predicting health expenditures not covered by insurance.
+
+```{r}
+health <- read.csv("Data/insurance.csv")
+mod <- lm(charges ~ bmi, health)
+mod2 <- lm(charges ~ bmi + smoker, health)
+anova(mod,mod2)
+```
+
+-   Check to see if the model assumptions of homoskedasticity and normally distributed residuals are violated.
+-   because of the small p values, both assumptions of homoscedasticity are violated.
+
+```{r}
+library(lmtest)
+bptest(mod2)
+plot(mod2,1)
+ks.test(rstandard(mod2), "pnorm")
+plot(mod2,2)
+```
+
+Return to the scatterplots and our least squares regression lines individually for smokers.
+
+```{r, message=FALSE}
+library(tidyverse)
+health <- read.csv("Data/insurance.csv")
+mod <- lm(charges ~ smoker + bmi,health)
+mod2 <-  lm(charges ~ smoker * bmi,health)
+health %>% 
+  mutate(pred_charges = mod$fitted.values,
+         pred_charges2 = mod2$fitted.values) %>%
+  ggplot(aes(x=bmi,y=charges,colour=smoker)) +
+  geom_point(size=0.5) +
+  geom_line(aes(y=pred_charges),lty=2) +
+  geom_line(aes(y=pred_charges2))
+```
+
+Why do these regression line not seem to fit the data properly?
+
+the blue points in the graph (smokers) all seem to fall above the dashed regression line after a certain point, meaning the assumption of homoscedasticity is bound to fail!
+
+**Confounding**: A variable that influences both the dependent variable and independent variable, causing a spurious association.
+
+### Example
+
+Determine if the average level of bmi is significantly different between smokers and non-smokers.
+
+-   reduced model: $\hat{bmi} = \beta_0$
+
+-   full model: $\hat{bmi} = \beta_0 + \beta_1 smokeryes$
+
+-   if smokeryes = 1 $\hat{bmi}$ is the average bmi for smokers and if smokeryes = 0 $\hat{bmi}$ is the average bmi for non smokers.
+
+-   $H_0: \beta_1 = 0, H_a: \beta_1 \neq 0$
+
+```{r}
+mod_confound <- lm(bmi ~ smoker, health)
+summary(mod_confound)
+```
+
+-   $t = 0.137$ and $p = 0.891$ , so we fail to reject $H_0$ we do not have statistically significant evidence that smoker status affects average level of bmi.
+-   Confounding variables do not always have to be statistically significant with each other
+
+**Interaction**: An effect in a linear model that quantifies the difference in a linear relationship between an one explanatory variable and the response variable when accounting for the value of another explanatory variable. These terms help account for the effects of confounding
+
+```{r, message=FALSE}
+
+```
+
+-   What is the form for this regression line?
+
+    $\hat{charges} = \beta_0 + \beta_1 bmi + \beta_2 smokeryes + \beta_3 bmi \times smokeryes$
+
+Example: Write out a linear regression line for predicting charges by bmi for both smokers and non-smokers.
+
+For smokers: $\hat{charges} = (\beta_0 + \beta_2) + (\beta_1 + \beta_3) bmi$
+
+For nonsmokers: $\hat{charges} = \beta_0 + \beta_1 bmi$ #simplified from smokers bc value of non-smoker is 0
+
+In general, if we want to predict $Y$ by $X_1$, $X_2$ and an interaction term between $X_1$ and $X_2$, our model would be:
+
+$\hat{Y} = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_1 \times X_2$
+
+### Example
+
+Create a linear model from the description of the motivating example 2.
+
+```{r}
+# X1:X2 adds an interaction term between X1 and X2
+mod_int <- lm(charges~bmi+smoker+bmi:smoker,health)
+# X1*X2 this adds the effects of X1 and X2 and an interaction term between X1 and X2
+mod_int <- lm(charges ~ bmi*smoker, health)
+coef(mod_int)
+```
+
+-   $\hat{charges} = 5879.42 + 83.35 bmi - 19066.00 smokeryes + 1389.76 bmi \times smokeryes$
+
+-   Interpret the estimate of the parameter associated with the interaction term in the context of the problem. 13... comes from smokeryes being = 1 (yes), second is from smoker (0 = no)
+
+    -   $\hat{charges}_{smoker} = -13186.58 + 1473.11 bmi$ , for $1kg/m^2$ increase of bmi a smoker will pay 1473.11 more for health expenditures
+
+    -   $\hat{charges}_{nonsmoker} = 5879.42 + 83.35 bmi$
+
+    -   for $1 kg/m^2$ per increase of bmi the expected healthcare charges not covered by insurance increases by 1389.76 dollars more for smokers than for non smokers.
+
+-   Interpret the estimate of the parameter associated with bmi in the context of the problem
+
+    -   for a $1 kg/m^2$ increase in bmi, the expected health care expenditures not covered by insurance for non-smokers increases by \\\$83.35
+
+Perform a hypothesis test to determine if the linear relationship between bmi and insurance charges is different for smokers vs. non-smokers. (This means I want you to perform an F test/hypothesis test to determine if adding an interaction term to our linear model is significant).
+
+```{r}
+```
+
+-   Let's check the model assumptions now.
+
+```{r}
+```
+
+Definitions of different terms
+
+-   First-order terms: parameters multiplied by a single explanatory variable (e.g $\beta_1 bmi,\beta_2 smokeryes$ )
+
+-   Second-order terms: parameters multiplied by a product of two explanatory variables (e.g $\beta_3 bmi \times smokeryes$)
+
+-   Third-order terms: parameters mulitplied by a product of three explanatory variables
+
+-   Etc.
+
+```{r}
+```

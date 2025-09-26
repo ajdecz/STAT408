@@ -1,0 +1,201 @@
+---
+title: "Analysis of Variance (ANOVA)"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: TRUE
+  include: TRUE
+---
+
+**Analysis of Variance (ANOVA)**: A table that breaks down the sources of the variation (sums of squares) in the response variable, $Y$, when we include explanatory variable(s), $X_1, X_2, \cdots X_k$, in our linear model.
+
+-   **Total Sums of Squares**: $\text{SST} = (n-1) s_y^2 = \sum_{i=1}^n (y_i - \bar{y})^2$
+
+Let's see if we can break down $\text{SST}$ further:
+
+$$
+\sum_{i=1}^n (y_i - \bar{y})^2 = \sum_{i=1}^n (y_i - \hat{y}_i + \hat{y}_i - \bar{y})^2 = \sum_{i=1}^n (y_i - \hat{y}_i)^2 + \sum_{i=1}^n (\hat{y}_i - \bar{y})^2 + 2\sum_{i=1}^n (y_i - \hat{y}_i)(\hat{y}_i - \bar{y})
+$$
+
+**Note:** $\hat{y}_i$ are predictions from a least squares regression line from a linear regression model.
+
+It can be proven that the final term on right is equal to 0 because $(y_i - \hat{y}_i)$ and $(\hat{y}_i - \bar{y})$ are orthogonal (independent). Therefore, $\text{SST}$ can be decomposed to:
+
+$$
+\sum_{i=1}^n (y_i - \bar{y})^2 = \sum_{i=1}^n (\hat{y}_i - \bar{y})^2 + \sum_{i=1}^n (y_i - \hat{y}_i)^2
+$$
+
+-   **Sums of Squares for the Model**: $\text{SSM} = \sum_{i=1}^n (\hat{y}_i - \bar{y})^2$
+
+    -   SSM can be thought of as the variation in $Y$ that is explained by a linear regression model
+
+-   **Sums of Squared Errors**: $\text{SSE} = \sum_{i=1}^n ({y}_i - \hat{y}_i)^2$
+
+    -   $y_i - \hat{y_i}$ is the error for observation i
+    -   SSE can be thought of as the variation in $Y$ that is not explained by a linear regression model.
+
+-   **Mean Squared for Model**: The variance of $Y$ explained by the linear model
+
+$$\text{MSM} = \frac{\text{SSM}}{k-1},$$where $k - 1$ is the *model degrees of freedom* for our linear model, and $k$ is the number of parameters ($\beta$s) in our linear model. The model degrees of freedom can also be defined as the number of explanatory variables in our linear regression model.
+
+Example: for simple linear regression, model df is 2-1 = 1 (2 parameters) x and y intercept
+
+-   **Mean Squared Error**: The variance of $Y$ not explained by the linear model
+
+$$\text{MSE} = \frac{\text{SSE}}{n-k},$$ where $n - k$ is the *error degrees of freedom* for our linear model.
+
+-   For simple linear regression, $k=2$. Therefore, the model degrees of freedom is $1$ and the error degrees of freedom is $n - 2$.
+
+    Recall: MSE is the same as $\hat{\sigma^2}$
+
+**F Statistic**: A statistic that measures the ratio of the variances of the response variable $Y$ that is explained/not explained by the model, (F distribution is about 2 variances independent of each other, hence the F statistic) Meaning it follows an F distribution (or at least we assume it does under certain model assumptions) $$F = \frac{\text{MSM}}{\text{MSE}} = \frac{\text{SSM}/(k-1)}{\text{SSE}/(n-k)} = \frac{\text{Explained Variance}}{\text{Unexplained Variance}}$$
+
+-   If $F$ is significantly large, then we have more variance explained by the model than unexplained, which provides evidence that the linear regression model is significant. For testing for a significant linear regression model, larger F is better.
+
+-   For Simple linear regression, $$F = \frac{\text{SSM}}{\text{SSE}/(n-2)} = \frac{\sum_{i=1}^n (\hat{y}_i - \bar{y})^2}{\hat{\sigma}^2} = \frac{\sum_{i=1}^n (\hat{\beta}_0 + \hat{\beta}_1 x_i - \bar{y})^2}{\hat{\sigma}^2}$$
+
+    $$
+    = \frac{\sum_{i=1}^n (\bar{y} - \hat{\beta}_1\bar{x} + \hat{\beta}_1x_i - \bar{y})^2}{\hat{\sigma}^2} = \frac{\hat{\beta}_1^2\sum_{i=1}^n (x_i - \bar{x})^2}{\hat{\sigma}^2} = \frac{\hat{\beta}_1^2 (n-1) s_x^2}{\hat{\sigma}^2} = \frac{\hat{\beta}_1^2}{\hat{\sigma}_{\hat{\beta}_1}^2} = t^2
+    $$
+
+Direct connection between F and the t statistic
+
+Recall, if $t \sim t_{df=\nu}$, then $F = t^2 \sim F_{df1=1,df2=\nu}$. Then, we can equivalent say that, if we are testing for a significant linear relationship between $X$ and $Y$, the p-value would be calculated as $$p-value = P(F_{df1=p-1,df2=n-p} > F).$$
+
+-   For simple linear regression, calculating a p-value from $t$ using a t-distribution with $n-2$ degrees of freedom is the same as calculating a p-value from $F = t^2$ using an F-distribution with $df1=1$ and $df2=n-2$.
+-   If $p-value < \alpha$, then we reject $H_0$ and say there is a significant linear relationship between $X$ and $Y$.
+-   If $p-value \geq \alpha$, then we fail to reject $H_0$ and say there is not a significant linear relationship between $X$ and $Y$.
+
+## ANOVA Table Format
+
+|       | df    | Sums of Squares                        | Mean Square                           | F Value                           | Pr(\>f)                      |
+|-------|:------|:---------------------------------------|:--------------------------------------|:----------------------------------|:-----------------------------|
+| Model | $k-1$ | $\text{SSM}$                           | $\text{MSM} = \frac{\text{SSM}}{k-1}$ | $F=\frac{\text{MSM}}{\text{MSE}}$ | $P(F_{df1=k-1,df2=n-k} > F)$ |
+| Error | $n-k$ | $\text{SSE}$                           | $\text{MSE} = \frac{\text{SSE}}{n-k}$ |                                   |                              |
+| Total | $n-1$ | $\text{SST} = \text{SSM} + \text{SSE}$ |                                       |                                   |                              |
+
+## Example
+
+Fill in the following incomplete ANOVA table.
+
+Lower tail on pf is false because it is greater than so we are going for the upper tail
+
+|       | df  | Sums of Squares | Mean Square | F Value | Pr(\>f)   |
+|-------|:----|:----------------|:------------|:--------|:----------|
+| Model | 1   | 50.83           | 50.83       | 51.2036 | 4.246e-09 |
+| Error | 48  | 47.65           | 0.9927      |         |           |
+| Total | 47  | 98.48           |             |         |           |
+
+```{r}
+df1 <- 1
+df2 <- 48
+ssm <- 50.83
+sst <- 98.48
+sse <- sst - ssm 
+msm <- ssm / 1
+mse <- sse / 48 
+f <- msm/mse
+pf <- pf(f, df1, df2, lower.tail = FALSE) 
+# OR 1 - pf(f, df1, df2) 
+ssm 
+sst 
+sse 
+msm
+mse
+f
+pf
+```
+
+## Example
+
+Using the bloodpressure dataset, obtain an ANOVA table and perform a hypothesis test for a significant linear relationship.
+
+-   reduced model : $\hat{SBP} = \beta_0$
+
+-   full model: $\hat{SBP} = \beta_0 + \beta_1 * Age$
+
+```{r}
+bloodpressure <- read.csv("Data/Bloodpressure.csv")
+mod <- lm(SBP ~ Age,bloodpressure)
+anova(mod)
+```
+
+HO = B0 = 0
+
+HA = B0 not equal to 0
+
+F = 21.33
+
+p = 7.867e-5
+
+We reject the null hypothesis and we can conclude we have a statistically significant linear relationship between age and systolic blood pressure
+
+Question: compare the test statistic and p value from this test to the t statistic and p value we calculated in the last class... t is equal to the square root of f, and the p values are the same. Showing the relationship between a t distribution and an f distribution.
+
+**Bivariate Normal Distribution:** A distribution that describes the joint relationship between two different normally distributed random variables $X$ and $Y$
+
+## Parameters of Bivariate Normal Distribution:
+
+-   $\mu_X$: univariate mean of $X$
+
+-   $\mu_Y$: univariate mean of $Y$
+
+-   $\sigma_X^2$: univariate variance of $X$
+
+-   $\sigma_Y^2$: univariate variance of $Y$
+
+-   $\rho$: correlation between $X$ and $Y$
+
+A nice property of the bivariate normal distribution is that we can slice the distribution at a fixed value of $X$ to obtain the *conditional distribution* of $Y$ at a given value of $X$. This distribution is also normally distributed with
+
+-   $\mu_{Y|X} = \mu_Y + \frac{\rho\sigma_Y}{\sigma_X}(X - \mu_X)$ and
+
+-   $\sigma_{Y|X}^2 = \sigma_Y^2(1 - \rho^2).$
+
+Recall, in the simple linear regression notes, we also defined
+
+-   $\mu_{Y|X} = \beta_0 + \beta_1 X$
+
+Combining the definitions of $\mu_{Y|X}$, we can say that $$\beta_1 = \frac{\rho \sigma_Y}{\sigma_X},$$
+
+and another defintion of its estimate is $$\hat{\beta}_1 = \frac{rs_y}{s_x}.$$
+
+where $r$ is an estimate of the correlation between $X$ and $Y$, more specifically the Pearson correlation coefficient, and $s_x$ and $s_y$ are the sample standard deviations of $X$ and $Y$.
+
+We can also say that $$\hat{\sigma}^2 = \frac{SSE}{n-2}$$ = SST(1-r\^2) / n -2 = (n-1)sysquared / (n-2) \* (1-rsquared)
+
+**Note:** The $n-1$ and $n-2$ terms are adjustments for the error degrees of freedom
+
+**R-Squared**($r^2$): the percent of variation in the response variable $Y$ that can be explained through a linear relationship with the explanatory variables $X_1,X_2,\cdots,X_k$
+
+Formally, $$r^2 = \frac{\text{SSM}}{\text{SST}} = \frac{\text{SSM}}{\text{SSM} + \text{SSE}},$$
+
+### Example
+
+Find the $r^2$ of the systolic blood pressure linear model. Interpret this value in the context of the given problem.
+
+```{r}
+summary(mod)$r.squared
+#extracts the multiple r-squared value 
+```
+
+-   $r^2 = 0.4324$ , means 43.24% of the variation in systolic blood pressure can be explained through a linear relationship with age.
+
+-   $r^2$ by itself cannot determine if a linear model is statistically significant
+
+    -   case in point, our linear model does not explain most of the variation in systolic blood pressure, however our hypothesis tests show we have a stattiscially significant linear relationship
+
+    -   it can help to decide if there are more variables we can add
+
+    -   `if you want to do a hypothesis test for a multiple linear regression model it turns out there are only 3 pieces of information you need. Sample size, number of parameters, and r-squared`
+
+-   The more explanatory variables you add to the model, the higher the $r^2$ will go.
+
+**Note:** We can use $r^2$ to calculate the $F$-statistic in hypothesis testing!
+
+$$
+F = \frac{\text{SSM}/(k-1)}{\text{SSE}/(n-k)} = \frac{(\text{SSM}/\text{SST})/(k-1)}{(\text{SSE}/\text{SST})/(n-k)} = \frac{r^2/(k-1)}{(1 - r^2)/(n-k)}
+$$

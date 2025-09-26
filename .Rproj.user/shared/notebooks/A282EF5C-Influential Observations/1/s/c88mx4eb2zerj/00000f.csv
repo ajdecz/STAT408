@@ -1,0 +1,4 @@
+"0","# Need library(regclass) to run the VIF function"
+"0","library(regclass)"
+"2","Error in library(regclass) : there is no package called ‘regclass’
+"

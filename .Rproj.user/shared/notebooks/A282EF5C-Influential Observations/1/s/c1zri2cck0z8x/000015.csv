@@ -1,0 +1,3 @@
+"0","#fitted extracts the fitted values from a linear model "
+"0","#rstudent extracts the studentized residuals from a linear model "
+"0","plot(fitted(mod),rstudent(mod))"
