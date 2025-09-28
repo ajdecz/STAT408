@@ -1,0 +1,83 @@
+---
+title: "Homework 4"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+Please upload an html/pdf to Sakai by Wednesday, October 1, at 6 pm.
+
+1.  Consider the attached rds files:
+
+-   X1.rds, containing the model matrix of a reduced model with a single explanatory variable ($X_1$)
+-   X2.rds, containing the model matrix of a full model with two explanatory variables, one numeric ($X_1$) and one categorical ($X_2$)
+-   y.rds, containing the observations of a response variable ($y$)
+
+**Note**: you can use the function readRDS in R to upload these types of data files (the syntax is otherwise the same)
+
+a.  Using linear algebra, perform a formal hypothesis test to determine if the variable $X_1$ and $y$ have a statistically significant linear relationship.
+
+```{r}
+# --- Load data ---
+X1 <- readRDS("Data/X1.rds")
+X2 <- readRDS("Data/X2.rds")
+y  <- readRDS("Data/y.rds")
+
+# Ensure matrix
+X1 <- as.matrix(X1)
+X2 <- as.matrix(X2)
+y  <- as.matrix(y)
+
+# --- Dimensions ---
+n  <- nrow(X1)
+p1 <- ncol(X1)
+
+# --- Projection matrix, fitted, residuals ---
+XtX_1    <- t(X1) %*% X1               # p1 x p1
+XtX_1inv <- solve(XtX_1)               # p1 x p1
+P1       <- X1 %*% XtX_1inv %*% t(X1)  # n x n
+
+yhat1 <- P1 %*% y                      # n x 1
+resid1 <- y - yhat1                    # n x 1
+
+# --- Sums of squares ---
+SST  <- (t(y) %*% y)
+SSR1 <- (t(yhat1) %*% yhat1)
+SSE1 <- (t(resid1) %*% resid1)
+
+# --- sigma^2 (scalar!) ---
+sigma2_hat_1 <- SSE1 / (n - p1)
+
+# --- beta_hat and Var(beta_hat) ---
+beta_hat_1 <- XtX_1inv %*% (t(X1) %*% y)   # p1 x 1
+Var_beta_1 <- as.numeric(sigma2_hat_1) * XtX_1inv   # scalar * matrix (use * not %*%)
+
+# --- t-test for slope (assumes col 1 = intercept, col 2 = X1) ---
+t_stat <- (beta_hat_1[2,1] / sqrt(Var_beta_1[2,2]))
+df     <- n - p1
+p_val  <- 2 * (1 - pt(abs(t_stat), df))
+
+t_stat
+p_val
+```
+
+b.  Using linear algebra, find the proportion of variation in $y$ that is explained by a linear model with $X_1$ and $X_2$.
+
+```{r}
+
+```
+
+c.  Assume that the linear model in (a) is statistically significant. Using linear algebra, perform a formal hypothesis test to determine if adding the variable $X_2$ to the linear model in (a) is statistically significant.
+
+```{r}
+```
+
+d.  For the model that you choose in (b), determine if there are any influential observations.
+
+```{r}
+```

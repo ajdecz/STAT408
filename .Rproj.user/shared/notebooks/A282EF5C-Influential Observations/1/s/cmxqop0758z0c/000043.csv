@@ -1,2 +1,0 @@
-"0","#lets look at a studentized residual plot "
-"0","plot(fitted(mod_2), rstudent(mod_2))"
