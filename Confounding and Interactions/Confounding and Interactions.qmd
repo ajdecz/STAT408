@@ -132,13 +132,35 @@ coef(mod_int)
 
 Perform a hypothesis test to determine if the linear relationship between bmi and insurance charges is different for smokers vs. non-smokers. (This means I want you to perform an F test/hypothesis test to determine if adding an interaction term to our linear model is significant).
 
+Reduced Model: $\hat{charges} = \beta_0 + \beta_1 bmi + \beta_2 smokeryes$
+
+Full Model: $\hat{charges} = \beta_0 + \beta_1 bmi + \beta_2 smokeryes + \beta_3 bmi \times smokeryes$
+
+$H_0: \beta_3 = 0, H_a: \beta_3 \neq 0$
+
 ```{r}
+# mod int defined previously is the full model 
+mod_red <- lm(charges ~ bmi + smoker, health)
+anova(mod_red, mod_int)
 ```
+
+$F = 433.06, p < 2.2 \times 10^{-16}$ , we reject $H_o$ and conclude that there is a statistically significant difference in the linear relationship between bmi and health expenditures not covered by insurance when accounting for smoker status.
 
 -   Let's check the model assumptions now.
 
 ```{r}
+
+library(lmtest)
+
+plot(mod_int,1)
+plot(mod_int,2)
+
+bptest(mod_int)
+ks.test(rstandard(mod_int), "pnorm")
+
 ```
+
+Clearly the assumption of normality is still violated, adding interaction terms only helps with effects of confounding, they are not designed to fix violations of model assumptions.
 
 Definitions of different terms
 
@@ -150,5 +172,12 @@ Definitions of different terms
 
 -   Etc.
 
+-   If you want to include interaction terms in the model, you should also include their associated first order terms. So the highest order must include the orders previous.
+
 ```{r}
+# create a model with all first and second order terms for health expenditures 
+# all variables confounding with all variables 
+
+mod_all <- lm(charges ~ .*., health)
+summary(mod_all)
 ```

@@ -314,7 +314,7 @@ $H_a: \exists \beta_j \neq 0 \text{ for } j =1, \cdots, k-1$
 Recall the ANOVA table:
 
 |       | df    | Sums of Squares | Mean Square                           | F Value                           | Pr(\>f)                      |
-|------------|:-----------|:-----------|:-----------|:-----------|:-----------|
+|-------|:------|:----------------|:--------------------------------------|:----------------------------------|:-----------------------------|
 | Model | $k-1$ | $\text{SSM}$    | $\text{MSM} = \frac{\text{SSM}}{k-1}$ | $F=\frac{\text{MSM}}{\text{MSE}}$ | $P(F_{df1=k-1,df2=n-k} > F)$ |
 | Error | $n-k$ | $\text{SSE}$    | $\text{MSE} = \frac{\text{SSE}}{n-k}$ |                                   |                              |
 | Total | $n-1$ | $\text{SST}$    |                                       |                                   |                              |
@@ -421,7 +421,7 @@ where
 The ANOVA Table looks as follows
 
 |               | df      | Sums of Squares     | Mean Square                                         | F Value                                        | Pr(\>f)                      |
-|------------|:-----------|:-----------|:-----------|:-----------|:-----------|
+|---------------|:--------|:--------------------|:----------------------------------------------------|:-----------------------------------------------|:-----------------------------|
 | Reduced Model | $l-1$   | $\text{SSM}_{red}$  | $\text{MSM}_{red} = \frac{\text{SSM}_{red}}{l-1}$   | $F=\frac{\text{MSM}_{red}}{\text{MSE}_{full}}$ | $P(F_{df1=l-1,df2=n-k} > F)$ |
 | Additional    | $k - l$ | $\text{SSM}_{add}$  | $\text{MSM}_{add} = \frac{\text{SSM}_{add}}{k-l}$   | $F=\frac{\text{MSM}_{add}}{\text{MSE}_{full}}$ | $P(F_{df1=k-l,df2=n-k} > F)$ |
 | Error         | $n-k$   | $\text{SSE}_{full}$ | $\text{MSE}_{full} = \frac{\text{SSE}_{full}}{n-k}$ |                                                |                              |
