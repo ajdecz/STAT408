@@ -22,8 +22,18 @@ Please upload an html/pdf to Sakai by Wednesday, October 1, at 6 pm.
 
 a.  Using linear algebra, perform a formal hypothesis test to determine if the variable $X_1$ and $y$ have a statistically significant linear relationship.
 
+    Reduced Model: $\hat{Y} = \beta_0$
+
+    Full Model: $\hat{Y} = \beta_0 + \beta_1X$
+
+    $H_0: \beta_1 = 0, H_a: \beta_1 \neq 0$
+
+    $t = 3.66, p = 0.0015$
+
+    Therefore we can reject the null hypothesis and say that $\beta_1 \neq 0$ and the variable $X_1$ and $y$ have a statistically significant linear relationship.
+
 ```{r}
-# --- Load data ---
+# Load data
 X1 <- readRDS("Data/X1.rds")
 X2 <- readRDS("Data/X2.rds")
 y  <- readRDS("Data/y.rds")
@@ -33,33 +43,31 @@ X1 <- as.matrix(X1)
 X2 <- as.matrix(X2)
 y  <- as.matrix(y)
 
-# --- Dimensions ---
-n  <- nrow(X1)
+# Dimensions
+n1  <- nrow(X1)
 p1 <- ncol(X1)
 
-# --- Projection matrix, fitted, residuals ---
-XtX_1    <- t(X1) %*% X1               # p1 x p1
-XtX_1inv <- solve(XtX_1)               # p1 x p1
-P1       <- X1 %*% XtX_1inv %*% t(X1)  # n x n
+# Projection matrix, fitted, residuals 
+XtX_1    <- t(X1) %*% X1               
+XtX_1inv <- solve(XtX_1)               
+P1       <- X1 %*% XtX_1inv %*% t(X1)  
 
-yhat1 <- P1 %*% y                      # n x 1
-resid1 <- y - yhat1                    # n x 1
+yhat1 <- P1 %*% y                      
+resid1 <- y - yhat1                    
 
-# --- Sums of squares ---
-SST  <- (t(y) %*% y)
-SSR1 <- (t(yhat1) %*% yhat1)
+# Sums of squares errors
 SSE1 <- (t(resid1) %*% resid1)
 
-# --- sigma^2 (scalar!) ---
-sigma2_hat_1 <- SSE1 / (n - p1)
+# sigma^2
+sigma2_hat_1 <- SSE1 / (n1 - p1)
 
-# --- beta_hat and Var(beta_hat) ---
-beta_hat_1 <- XtX_1inv %*% (t(X1) %*% y)   # p1 x 1
-Var_beta_1 <- as.numeric(sigma2_hat_1) * XtX_1inv   # scalar * matrix (use * not %*%)
+# beta_hat and Var(beta_hat)
+beta_hat_1 <- XtX_1inv %*% (t(X1) %*% y)
+Var_beta_1 <- as.numeric(sigma2_hat_1) * XtX_1inv   # scalar * matrix (use * not%)
 
-# --- t-test for slope (assumes col 1 = intercept, col 2 = X1) ---
+# t-test for slope (assumes col 1 = intercept, col 2 = X1)
 t_stat <- (beta_hat_1[2,1] / sqrt(Var_beta_1[2,2]))
-df     <- n - p1
+df     <- n1 - p1
 p_val  <- 2 * (1 - pt(abs(t_stat), df))
 
 t_stat
@@ -68,16 +76,103 @@ p_val
 
 b.  Using linear algebra, find the proportion of variation in $y$ that is explained by a linear model with $X_1$ and $X_2$.
 
-```{r}
+    $r^2 = 0.8429$ , meaning 84.29% of the proportion of variance in y is explained by a linear model with both $X1$ and $X2$
 
+```{r}
+n2 <- nrow(X2)
+
+# projection model 
+XtX_2 <- t(X2) %*% X2
+XtX_2inv <- solve(XtX_2)
+P2 <- X2 %*% XtX_2inv %*% t(X2)
+
+# sums of squares
+SST2 <- t(y) %*% y
+SSE2 <- t(y) %*% (diag(n) - P2) %*% y
+
+# proportion of variance explained
+R2 <- 1 - SSE2 / SST2
+R2
 ```
 
 c.  Assume that the linear model in (a) is statistically significant. Using linear algebra, perform a formal hypothesis test to determine if adding the variable $X_2$ to the linear model in (a) is statistically significant.
 
+    Reduced Model: $\hat{Y} = \beta_0 + \beta_1 X1$
+
+    Full Model: $\hat{Y} = \beta_0 + \beta_1 X1 + \beta_2 X2$
+
+    $H_0: \beta_2 = 0, H_a: \beta_2 \neq 0$
+
+    $F = 5.54, p = 0.0052$ , therefore we reject the null hypothesis and can conclude that adding $X2$ as an explanatory variable to a linear model that already includes $y$ as a response variable and $X1$ as an explanatory variable.
+
 ```{r}
+# dimensions
+n  <- nrow(X1)
+pR <- ncol(X1)
+pF <- ncol(X2)
+q  <- pF - pR
+I  <- diag(n)
+
+# projection matrices
+PR <- X1 %*% solve(t(X1) %*% X1) %*% t(X1)
+PF <- X2 %*% solve(t(X2) %*% X2) %*% t(X2)
+
+# SSEs
+SSE_R <- as.numeric(t(y) %*% (I - PR) %*% y)
+SSE_F <- as.numeric(t(y) %*% (I - PF) %*% y)
+
+# F-statistic
+num <- (SSE_R - SSE_F) / q
+den <- SSE_F / (n - pF)
+f   <- num / den
+
+# p-value
+p <- 1 - pf(f, q, n - pF)
+
+f
+p
+
+
+#check to make sure 
+modred <- lm(y ~ X1)
+modfull <- lm(y ~ X2)
+anova(modred, modfull)
+# yup we good 
 ```
 
 d.  For the model that you choose in (b), determine if there are any influential observations.
 
+    From the studentized values of the values of X1 and X2, we can determine that observations 11 and 73 (72 in the model that removes 11) are influential observations.
+
 ```{r}
+# initial observation
+plot(modfull,1) #modfull is y ~ XZ (above)
+
+
+# obs 11 is an influential observation, 73
+rstud <- rstudent(modfull)
+rstud
+id1 <- which.max(abs(rstud))
+n <- nrow(X2)
+k <- 3
+alpha <- 0.01 
+crit <- qt(1-alpha/2,n-k-1)
+(abs(rstud)[id1] > crit)
+crit
+
+# observation 73 is our next influential observation
+modfull2 <- lm(y[-11,] ~ X2[-11, -1])
+rstud2 <- rstudent(modfull2)
+id2 <- which.max(abs(rstud2))
+abs(rstud2)[id2] > crit
+
+# next one 42 is not an influential observation
+infl_obs <- c(11,73)
+modfull3 <- lm(y[-infl_obs,] ~ X2[-infl_obs, -1])
+rstud3 <- rstudent(modfull3)
+id3 <- which.max(abs(rstud3))
+abs(rstud3)[id3] > crit
+rstud3
+
+
 ```
