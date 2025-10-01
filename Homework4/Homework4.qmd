@@ -33,21 +33,17 @@ a.  Using linear algebra, perform a formal hypothesis test to determine if the v
     Therefore we can reject the null hypothesis and say that $\beta_1 \neq 0$ and the variable $X_1$ and $y$ have a statistically significant linear relationship.
 
 ```{r}
-# Load data
 X1 <- readRDS("Data/X1.rds")
 X2 <- readRDS("Data/X2.rds")
 y  <- readRDS("Data/y.rds")
 
-# Ensure matrix
 X1 <- as.matrix(X1)
 X2 <- as.matrix(X2)
 y  <- as.matrix(y)
 
-# Dimensions
 n1  <- nrow(X1)
 p1 <- ncol(X1)
 
-# Projection matrix, fitted, residuals 
 XtX_1    <- t(X1) %*% X1               
 XtX_1inv <- solve(XtX_1)               
 P1       <- X1 %*% XtX_1inv %*% t(X1)  
@@ -55,17 +51,13 @@ P1       <- X1 %*% XtX_1inv %*% t(X1)
 yhat1 <- P1 %*% y                      
 resid1 <- y - yhat1                    
 
-# Sums of squares errors
 SSE1 <- (t(resid1) %*% resid1)
 
-# sigma^2
 sigma2_hat_1 <- SSE1 / (n1 - p1)
 
-# beta_hat and Var(beta_hat)
 beta_hat_1 <- XtX_1inv %*% (t(X1) %*% y)
 Var_beta_1 <- as.numeric(sigma2_hat_1) * XtX_1inv
 
-# t-test for slope (assumes col 1 = intercept, col 2 = X1)
 t_stat <- (beta_hat_1[2,1] / sqrt(Var_beta_1[2,2]))
 df     <- n1 - p1
 p_val  <- 2 * (1 - pt(abs(t_stat), df))
@@ -100,27 +92,21 @@ c.  Assume that the linear model in (a) is statistically significant. Using line
     $F = 5.54, p = 0.0053$ , therefore we reject the null hypothesis and can conclude that adding $X2$ as an explanatory variable to a linear model that already includes $y$ as a response variable and $X1$ as an explanatory variable.
 
 ```{r}
-# dimensions
 n  <- nrow(X1)
 pR <- ncol(X1)
 pF <- ncol(X2)
 q  <- pF - pR
 I  <- diag(n)
 
-# projection matrices
 PR <- X1 %*% solve(t(X1) %*% X1) %*% t(X1)
 PF <- X2 %*% solve(t(X2) %*% X2) %*% t(X2)
 
-# SSEs
 SSE_R <- as.numeric(t(y) %*% (I - PR) %*% y)
 SSE_F <- as.numeric(t(y) %*% (I - PF) %*% y)
 
-# F-statistic
 num <- (SSE_R - SSE_F) / q
 den <- SSE_F / (n - pF)
 f   <- num / den
-
-# p-value
 p <- 1 - pf(f, q, n - pF)
 
 f
@@ -136,7 +122,7 @@ anova(modred, modfull)
 
 d.  For the model that you choose in (b), determine if there are any influential observations.
 
-    From the studentized values of the values of X1 and X2, we can determine that observations 11 and 73 are influential observations.
+    From the studentized values of the linear relationship of y and X1 and X2, we can determine that observations 11 and 73 are influential observations.
 
 ```{r}
 
