@@ -140,7 +140,7 @@ d.  For the model that you choose in (b), determine if there are any influential
 
 ```{r}
 
-# From class convo it is clear you wanted linear so I did rstud() method first 
+# From class convo it is clear you wanted linear but I did rstud() method first 
 
 # initial observation
 plot(modfull,1) #modfull is y ~ XZ (above)
