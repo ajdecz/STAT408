@@ -1,0 +1,212 @@
+---
+title: "Variable Selection"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+## Maximum Model
+
+**Maximum Model**: The model with all of the explanatory variables, potentially including polynomial and interaction terms, that we would be okay with including in our regression model
+
+How to determine if we should include a polynomial term in the maximum model?
+
+-   Observe the scatterplots of each explanatory variable on the x-axis compared to the response on the y-axis
+
+-   If the plot looks non-linear, add a quadratic, cubic, or higher-order polynomial term to your model, which ever you think looks appropriate
+
+### Example
+
+Reconsider the *Boston* dataset in the *MASS* package where we wish to fit a model predicting the median home value of Boston homes in the suburbs. There are 12 potential numeric explanatory variables we can use in our model. Determine if we should include any polynomial terms in our maximum model. (To start, we will assume no transformation on the response variable, medv).
+
+```{r}
+library(MASS)
+library(tidyverse)
+# lets start by looking at medv by crim
+ggplot(Boston, aes(x = crim, y = medv)) +
+  geom_point() 
+
+# looks somewhat curved so lets include a quadratic term 
+# now, lets do medv by lstat
+ggplot(Boston, aes(x = lstat, y = medv)) +
+  geom_point()
+# looks like we should add a quadratic term 
+# you can look at other plots as well but we are skipping for time in class
+```
+
+These scatterplots do not tell us if we should **exclude** a variable from our maximum model; rather if we should **add** a polynomial term to our model
+
+How to determine if we should include an interaction term in the maximum model?
+
+-   Observe 3-d scatterplots or 2-d scatterplots with different sizes of points of each pair of explanatory variables compared to the response on the y-axis
+
+-   If the plot looks like there is an apparent pattern between the two variables, add an interaction term
+
+-   You could also go based on intuition. If you think two numeric variables will have a different linear relationship for different values of categorical variable, include an interaction term(s).
+
+**Type I Error**: Including a predictor in our linear model that is truly non-signficant
+
+**Type II Error**: Excluding a predictor in our linear model that is truly signficant
+
+If adding a polynomial or interaction term appears borderline (i.e. not sure if we should add the term or not), **add the term into the maximum model**. This decreases the chances of making Type II Error. Excluding significant terms from our model will **introduce bias** into our model.
+
+However, the possibility of **overfitting** is possible in our maximum model. Overfitting occurs either when
+
+-   Terms that are not statistically significant are included in our model
+
+-   Terms that are related to other statistically significant terms in our model are also included (*multicollinearity*)
+
+Let's see the regression results for our maximum model for median home values in Boston suburbs.
+
+-   For now, include all interaction terms as well as quadratic terms for crime rate and lower status (lstat)
+
+-   Note: the t-stat and p-value in the Coefficients table test if that term is statistically significant given every other term is already included in our model.
+
+```{r}
+mod_max <- lm(medv ~ .*. + I(crim^2) + I(lstat^2), Boston)
+summary(mod_max)
+# pvalues represent when its added to the model last, 
+# as in added when all other variables are added
+```
+
+the pvalues in the summary table are from testing if those variables are statistically significant in our model given that all the other terms are already included.
+
+A lot of high p values indicates we are including explanatory terms that are not statistically significant (overfitting)
+
+however removing all the variables with pvalues above .05 could remove statistically significant variables along the way.
+
+## Criteria for determining \`\`best'' regression model
+
+The most obvious criteria is to choose the model that explains that largest amount of variation in the response (i.e. the largest $r^2 = \frac{\text{SSM}}{\text{SST}} = 1 - \frac{\text{SSE}}{\text{SST}}$). However, as we have explained previously, $r^2$ will \text{always} increase when we add additional terms to our regression model. So what should we use?
+
+For the following criteria, define a reduced model with $k-1$ predictors as $$Y = \beta_0 + \beta_1 x_1 + \dots + \beta_{k-1} x_{k-1} + \epsilon$$ with $\text{SSE}(k-1)$ as the sum of squared errors for the $p$-predictors model. Denote $SST = \sum (y_i - \bar{y})^2$ as the total sums of squares for the response $Y$, and $k-1$ be the number of predictors in the maximum model.
+
+Criteria choices:
+
+-   Adjusted $r^2$: $r_{adj,k-1}^2 = 1 - \frac{\text{SSE}(k-1)/(n-k)}{\text{SST}/(n-1)} = 1 - (1-r^2)\frac{n-1}{n-k}$
+    -   Adjusts the regular $r^2$ for the number of parameters in the model
+-   Akaike Information Criterion $(AIC)$: $AIC = n\text{log}(\text{SSE}(k-1)/n) + 2(k-1)$
+    -   Compares the "log-likelihood" (based on the sum of square errors) and adds a penalty for the number of parameters in the model (does not let too many variables into our model)
+-   F-statistic: $F_{k-1} = \frac{(\text{SSE}(l-1) - \text{SSE}(k-1))/(k-l)}{\text{SSE}(k-1)/(n-k)} = \frac{(\text{SSE}(l-1) - \text{SSE}(k-1))/(k-l)}{\text{MSE}(k-1)}$
+    -   Can compute a p-value for $F_{k-1}$ using an F-distribution with $k-l$ and $n-k$ degrees of freedom used to determine if an explanatory variable is statistically significant for a given model
+-   Mallow's $C_p$: $C_p = \frac{\text{SSE}(l-1)}{\text{MSE}(k)} - \left(n - 2k\right)$
+    -   dont really care for the midterm
+    -   This value helps to determine the number of variables to be put in the model, since this value is close to $k$ if $\text{MSE}(l-1) \approx \text{MSE}(k)$
+
+We will typically want to choose the model that either **maximizes** the adjusted $r^2$ or **minimizes** the AIC or Mallow's $C_p$. Most often, we choose AIC, because it is a well-established method and easy to implement in R.
+
+## Selecting \`\`best'' regression model
+
+If we want to compare all possible models, this means we have to compare all possible subsets of the maximum model. It turns out there are $2^k$ possible combinations of models. For a large $k$, this is computationally infeasible. We need to have a different method of choosing the \`\`best'' regression model.
+
+### Backward Selection
+
+1.  Start with a model that contains all possible predictors (i.e. $Y \sim \mathcal{N}(\beta_0 + \beta_1X_1 + \cdots + \beta_{k-1}X_{k-1},\sigma^2)$)
+
+2.  For each of the possible variable to be removed from the model
+
+-   Calculate $AIC$ when adding each variable individually to the model
+
+-   Remove the variable to the model that has the highest $AIC$
+
+3.  Repeat (2)
+
+4.  If the $AIC$ does not decrease any further, do not remove any additional variables from the model, and return the final model.
+
+### Example
+
+Determine the \`\`best'' model for the *Boston* dataset from our maximum model using backward selection.
+
+Note, each line represents the AIC for the model that removes the given term
+
+the term at the top is the one that lowers AIC the most when it is removed
+
+```{r}
+mod_best1 <- step(mod_max, direction = "backward", trace = 0)
+summary(mod_best1) 
+# trace = 0 does not include the trace of the variables
+# added benefit for step function, output is an lm object
+```
+
+### Forward Selection
+
+1.  Start with a model that contains no predictors (i.e. $Y \sim \mathcal{N}(\beta_0,\sigma^2)$)
+
+2.  For each of the possible variables to be added to the model
+
+-   Calculate $AIC$ when adding each variable individually from the model
+
+-   Add the variable from the model that has the smallest $AIC$
+
+3.  Repeat (2)
+
+4.  If the criterion does not change any further, do not add any additional variables to the model, and return the final model
+
+### Stepwise Selection
+
+Stepwise selection starts the same as backward selection, except that it incorporates "re-examination". In other words, variables that were previously removed from the model using backward selection are now allowed to be reentered into the model if adding the variable back in minimizes or maximizes the specific criterion.
+
+a variable that may appear not statistically significant may become statistically significant if any variables causing issues such as multicollinearity are removed
+
+### Example
+
+Determine the \`\`best'' model for the *Boston* dataset from our maximum model using stepwise selection.
+
+```{r}
+mod_best2 <- step(mod_max, direction = "both", trace = 0)
+summary(mod_best2)
+```
+
+Let's see what our residual and QQ-plots look like for our "best" model.
+
+```{r}
+plot(mod_best1,1)
+plot(mod_best1,2)
+library(lmtest)
+bptest(mod_best1)
+ks.test(rstandard(mod_best1), "pnorm")
+
+```
+
+*Note*: When you are choosing your best model for the exam, or for the project, start with the actual response variable. Then, if the assumptions of normality or homoskedasticity are violated
+
+-   Try a transformation of the response variable, if you do this start your variable selection procedure from the beginning.
+
+-   Try adding in additional interaction or polynomial terms to your model
+
+<!-- -->
+
+-   If you do a transformation of the response variable, restart the variable selection procedure with your maximum model! This will reduce the probability of Type II error.
+
+```{r}
+mod_max_log <- lm(log(medv) ~ .*. + I(crim^2) + I(lstat^2), Boston)
+mod_best_log <- step(mod_max_log, direction = 'both', trace = 0)
+plot(mod_best_log,1)
+plot(mod_best_log,2)
+```
+
+## How to find the "best" linear model using other criterion
+
+```{r}
+# the leaps package contains multiple functions to perform variable selection by multiple different methods. 
+# specifically, the regsubsets() function
+# bad news: does not directly output a linear model
+library(leaps)
+var_sel <- regsubsets(medv ~ .*. + I(crim^2) + I(lstat^2), Boston, method='seqrep', nvmax = 100, really.big = TRUE)
+
+#summary(var_sel)
+ 
+# summary shows which variables are included when we have only one variable model, 2 variable model, etc
+
+summary(var_sel)$cp #mallows cp for the models with the given number of variables
+summary(var_sel)$adjr2
+which.min(summary(var_sel)$cp) #model that minimizes mallows cp
+which.max(summary(var_sel)$adjr2)
+coef(var_sel,47)
+coef(var_sel, 53)
+```
