@@ -24,18 +24,19 @@ We want to create a model to predict the median value of owner-occupied homes.
 
 With multiple linear regression, we have discussed the various assumptions needed to perform regression analysis. Combining these assumptions, with a response variable $Y$ and $k-1$ explanatory variables, $X_1,X_2,\dots,X_{k-1}$, we have that $$Y \sim \mathcal{N}\left(\beta_0 + \beta_1X_1 + \cdots + \beta_{k-1}X_{k-1},\sigma^2\right),$$ where we assume that all of the values are normally distributed with a linear mean structure and common variance. This can also include interaction terms.
 
-Let's check the assumptions for the linear model predicting median value of homes in Boston suburbs with all of the other variables in the dataset as well as interaction terms.
+Let's check the assumptions for the linear model predicting median value of homes in Boston suburbs with all of the other variables in the dataset
 
 ```{r}
+Boston <- Boston
 mod <- lm(medv ~ ., Boston)
 library(lmtest)
-plot(mod,1)
-plot(mod,2)
+plot(mod, 1)
+plot(mod, 2)
 bptest(mod)
 ks.test(rstandard(mod), "pnorm")
 ```
 
-based on the plots and the numeric tests, both plots are violated.
+-   Based on the plots and the numeric tests, both assumptions are violated.
 
 **Transformation**: Inputting the response variable ($Y$) into a function to obtain a new response ($\tilde{Y}$) that more closely meets the assumptions for a linear regression model.
 
@@ -44,29 +45,24 @@ Common Types of transformations of a response variable:
 -   Log-Transformation ($\tilde{Y} = \log(Y), Y > 0$): (Note: when I say log, I am referring to the natural logarithm)
 
     -   stabilizes the variance if the variability increases significantly with any $X$ (witnessing a horn shape in the residual plot)
-    -   normalizes the variable if it is highly right skewed (many points on the upper end of QQ-plot are above the 45-degree line)
-    -   linearizes the relationship if the relationship between $X$ and $Y$ appears to be exponential (look at this via a scatterplot)
+    -   normalizes the variable if it is highly right skewed (many points on the upper end of QQ-plot are above the 45-degree line). This is what we see in the QQ-plot for the Boston dataset.
+    -   linearizes the relationship if the relationship between $X$ and $Y$ appears to be exponential (look at this via a scatterplot). This can be discovered via a Box-Cox plot.
 
 -   Square Root-Transformation ($\tilde{Y} = \sqrt{Y}, Y \geq 0$):
 
-    -   stabilizes the variance if the variance is proportional to the mean (i.e. $\text{sd}(Y | X_1,\dots,X_p) = c\text{E}(Y | X_1,\dots,X_p)$ where $c$ is a constant) . This can be discovered via a box-cox plot.
+    -   stabilizes the variance if the variance is proportional to the mean (i.e. $\text{sd}(Y | X_1,\dots,X_p) = c\text{E}(Y | X_1,\dots,X_p)$ where $c$ is a constant)
 
 -   Squared-Transformation ($\tilde{Y} = Y^2$):
 
     -   stabilizes the variance if the variance is decreases significantly with any $X$ (horn is pointing left in the residual plot)
-    -   normalizes the variable if ii tis highly right skewed (many points are on the upper end of qq-plot are above the 45 degree line). this is what we see in the qq plot for the boston dataset.
 
 So now, the model we are fitting is
 
 $$\tilde{Y} \sim \mathcal{N}\left(\beta_0 + \beta_1X_1 + \cdots + \beta_{k-1}X_{k-1},\sigma^2\right),$$
 
 ```         
-The method of finding the regression estimates 
-$\hat{\beta}_0,\hat{\beta}_1,\dots,\hat{\beta}_{k-1}$
- is still minimizing the sum of squared errors:
+The method of finding the regression estimates $\hat{\beta}_0,\hat{\beta}_1,\dots,\hat{\beta}_{k-1}$ is still minimizing the sum of squared errors:
 ```
-
-\$\\hat{\\beta}\_0,\\hat{\\beta}\_1,\\dots,\\hat{\\beta}\_{k-1}\$
 
 $$\sum_{i=1}^n \left(\tilde{y}_i - (\hat{\beta}_0 + \hat{\beta}_1x_{i1} + \cdots + \hat{\beta}_{k-1}x_{i,k-1})\right)^2$$
 
@@ -76,43 +72,62 @@ Consider the Boston dataset once again.
 
 Perform a least squares regression analysis for the natural log of median home value with crime rate as the only explanatory variable by answering the following questions:
 
-a.  Write out the least squares regression line
+a.  Write out the least squares regression line:
 
 ```{r}
 mod_log <- lm(log(medv) ~ crim, Boston)
-coef(mod_log)
+summary(mod_log)
 ```
 
-b\. $\hat{log(medV)} = 3.125 - 0.02509 \times crim$
+b.  Interpret the slope of the least squares regression line in the context of the given problem.
 
-c\. Interpret the slope of the least squares regression line in the context of the given problem.
+$log(medv) = 3.125 - 0.02509 crim$
 
--0.02509: for a one percent increase in the per capita crime rate, the expected log median home value decreases by 0.02509 log-thousand dollars
+For a one percent increase in per capita crime rate, the expected log median home value decreases by 0.02509 log-thousand dollars
 
 OR
 
-For a one percent increase in the per capita crime rate the expected median home value changes by a factor of exp(-0.02509) = 0.9752
+For a one percent increase in per capita crime rate, the expected median home value changes by a factor of exp(-0.02509)
 
-d\. Perform an F-test to determine if this log-linear (because log transformation) model for sales price is statistically significant. #not to test if the transformed model is better, testing to see if there is a significant linear relationship within the transformed model
+b.  Perform an F-test to determine if this log-linear (because log transformation) model for sales price is statistically significant.
+
+-   This is not testing if our transformed model is statistically significantly better at
+
+-   This is testing if the explanatory variables in our transformed model are statistically significant.
 
 Reduced Model: $\hat{log(medv)} = \beta_0$
 
 Full Model: $\hat{log(medv)} = \beta_0 + \beta_1 crim$
 
-$H_0: \beta_1 = 0$
-
-$H_a: \beta_1 \neq 0$
+$$
+H_0: \beta_1 = 0 \\ H_a: \beta_1 \neq 0
+$$
 
 ```{r}
 summary(mod_log)
 ```
 
-d.  $F = 198.4, p < 2.2 \times 10^{-16}$ so we reject null hypothesis that crime rate is statistically significant in predicting median home value in Boston suburbs through a log linear model.
-e.  
-f.  Check to see if the assumptions of homoscedasticity and normally distributed residuals are met for this transformed linear model.
+$F = 194.8$, $p-value < 2.2 \times 10^{-16}$, so therefore we reject $H_0$ and conclude that crime rate is statistically significant in predicting median home value in the Boston suburbs through a log-linear model.
+
+-   Calculate and interpret a 95% confidence interval for the parameter associated with crime rate.
+
+    ```{r}
+    confint(mod_log, "crim")
+    ```
+
+    (-0.02862, -0.02156): We are 95% confident that for a one percent increase in crime rate, the expected median home value in the Boston suburbs changes by a factor of between exp(-0.02862) = 0.9718 and exp(-0.02156) = 0.9787.
+
+d.  Check to see if the assumptions of homoscedasticity and normally distributed residuals are met for this transformed linear model.
 
 ```{r}
+plot(mod_log, 1)
+plot(mod_log, 2)
+library(lmtest)
+bptest(mod_log)
+ks.test(rstandard(mod_log), "pnorm")
 ```
+
+The assumptions are still violated. However, we can now visually see a quadratic curve in the residual plot.
 
 **Polynomial Regression**: Extension of a linear regression model where we now allow for quadratic, cubic, and higher-order terms in our regression model. If we have a single explanatory variable $X$, then we can have $$Y \sim \mathcal{N}\left(\beta_0 + \beta_1 X + \beta_2 X^2 + \dots + \beta_k X^k,\sigma^2\right)$$ or if $Y$ is transformed $$\tilde{Y} \sim \mathcal{N}\left(\beta_0 + \beta_1 X + \beta_2 X^2 + \dots + \beta_k X^k,\sigma^2\right)$$
 
@@ -126,20 +141,57 @@ Perform a least squares regression analysis for log median home value with a lin
 
 a.  Write out the least squares regression line:
 
+$\hat{log(medv)} = 3.174 - 0.05028 crim + 0.0004847crim^2$
+
 ```{r}
+# All polynomial terms must be included inside of their own I() e.g. crim + I(crim^2) + I(crim^3)
+# Or you can use poly(crim,k,raw=TRUE) for up to k polynomial terms
+mod_quad <- lm(log(medv) ~ crim + I(crim^2), Boston)
+coef(mod_quad)
 ```
 
 b.  Perform an F-test to determine if a polynomial model with a linear and quadratic term for crime rate significantly improves the predictive ability of log median home value (with nothing else).
 
+-   Reduced Model: $\hat{log(medv)} = \beta_0$
+
+-   Full Model: $\hat{log(medv)} = \beta_0 + \beta_1 crim + \beta_2 crim^2$
+
+$$
+H_0: \beta_j = 0, j = 1,2 \\
+H_a: \exists \beta_j \neq 0, j = 1,2
+$$
+
 ```{r}
+summary(mod_quad)
 ```
+
+$F = 146.5$, $p < 2.2 \times 10^{-16}$, so therefore we reject $H_0$ and conclude that a log-quadratic regression model for median home values in Boston suburbs by crime rate is statistically significant.
 
 c.  Perform an F-test to determine if adding a quadratic term to a least squares regression line which already includes a linear term significantly improves the predictive ability of log median home value.
 
+-   Reduced Model: $\hat{log(medv)} = \beta_0 + \beta_1 crim$
+
+-   Full Model: $\hat{log(medv)} = \beta_0 + \beta_1 crim + \beta_2 crim^2$
+
+$$
+H_0: \beta_2 = 0 \\ H_a: \beta_2 \neq 0
+$$
+
 ```{r}
+mod_quad <- lm(log(medv) ~ crim + I(crim^2), Boston)
+mod_red <- lm(log(medv) ~ crim, Boston)
+anova(mod_red, mod_quad)
 ```
+
+$F = 71.124$, $p = 3.573 \times 10^{-16}$, so therefore we reject $H_0$ and conclude that adding a quadratic term for crime rate to a log-linear model predicting the median home value in the Boston suburbs by crime rate is statistically significant.
 
 d.  Check to see if the assumptions of homoscedasticity and normally distributed residuals are met for this transformed polynomial model.
 
 ```{r}
+plot(mod_quad, 1)
+plot(mod_quad, 2)
+bptest(mod_quad)
+ks.test(rstandard(mod_quad), "pnorm")
 ```
+
+The assumptions are still violated, but we must note that we only included one variable.
