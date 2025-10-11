@@ -1,0 +1,67 @@
+---
+title: "Homework 5"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+Consider the lifexp dataset in the exam project which contains information on countries from the year 2015. The variables contained in the dataset are defined as follows:
+
+-   {Status}: Development status of the country
+
+-   {Life.Expectancy}: Country's average life expectancy in years
+
+-   {Adult.Mortality}: Number of deaths of people between 15 and 60 per 1000 population
+
+-   {infant.deaths}: Number of infant deaths per 1000 population
+
+-   {Measles}: Number of measles cases per 1000 population
+
+-   {BMI}: average BMI for entire population
+
+-   {under.five.deaths}: Number of Under five deaths per 1000 population
+
+-   {Polio}: Polio immunization coverage for 1 year olds
+
+-   {Diptheria}: Diphtheria tetanus toxoid and pertussis immunization coverage for 1 year olds
+
+-   {HIV.AIDS}: Deaths per 1000 live births from HIV/AIDS (0-4 year olds)
+
+-   {Income.composition.of.resources}: Human Development Index in terms of income composition of resources (from 0 to 1)
+
+-   {Schooling}: Number of Years of Schooling
+
+We are interested in creating a regression model that predicts a country's life expectancy based on the other factors in the dataset. More specifically, we would like to determine the "best" overall prediction model for life expectancy using all of the other variables in our dataset as predictors.
+
+-   
+
+    a.  Should we include any interaction or polynomial terms in our maximum model? Explain your reasoning.
+
+```{r}
+```
+
+-   
+
+    b.  Using the maximum model you used in (a) backward selection with Mallow's $C_p$ as your decision criteria to eliminate variables from your model.
+
+```{r}
+```
+
+-   
+
+    c.  Write your final regression model for predicting life expectancy.
+
+```{r}
+```
+
+-   
+
+    d.  Determine if the assumptions of homoscedasticity and normally distributed residuals is violated. If one is violated, suggest a transformation of the response variable.
+
+```{r}
+```
