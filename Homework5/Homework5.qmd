@@ -1,5 +1,5 @@
 ---
-title: "Homework 5"
+title: "Homework 5 - AD"
 format: 
   html:
     self-contained: true
@@ -42,7 +42,61 @@ We are interested in creating a regression model that predicts a country's life 
 
     a.  Should we include any interaction or polynomial terms in our maximum model? Explain your reasoning.
 
+        Yes we should include both polynomial and interaction terms in our maximum model. Scatterplots showed clear curvature for variables like infant.deaths, under.five.deaths, Polio, Diphtheria, and HIV.AIDS, so squared terms were added to capture these nonlinear relationships. Several interactions, especially those involving status and socioeconomic factors like Income.composition.of.resources and Schooling, also appeared to have different effects and proved to be statistically significant using the both ways step function using AIC as criterion for inclusion in the best model.
+
 ```{r}
+library(tidyverse)
+health <- read.csv("Data/lifeexp.csv")
+
+# Scatterplots to see if we need to include a polynomial term
+
+# Adult.Mortality - Linear
+ggplot(health, aes(x = Adult.Mortality, y = Life.expectancy)) +
+  geom_point()
+  
+# infant.deaths - Polynomial 
+ggplot(health, aes(x = infant.deaths, y = Life.expectancy)) +
+  geom_point()+
+  xlim(0,75)
+
+# Measles - no relationship
+ggplot(health, aes(x = Measles, y = Life.expectancy)) +
+  geom_point()
+
+# BMI - Linear
+ggplot(health, aes(x = BMI, y = Life.expectancy)) +
+  geom_point()
+
+# under.five.deaths - Polynomial
+ggplot(health, aes(x = under.five.deaths, y = Life.expectancy)) +
+  geom_point()+
+  xlim(0,100)
+
+# Polio - Polynomial
+ggplot(health, aes(x = Polio, y = Life.expectancy)) +
+  geom_point()
+
+# Diphtheria - Polynomial
+ggplot(health, aes(x = Diphtheria, y = Life.expectancy)) +
+  geom_point()
+
+# HIV.AIDS - Polynomial
+ggplot(health, aes(x = HIV.AIDS, y = Life.expectancy)) +
+  geom_point()
+
+# Income.composition.of.resources - Linear
+ggplot(health, aes(x = Income.composition.of.resources, y = Life.expectancy)) +
+  geom_point()
+
+# Schooling - Linear
+ggplot(health, aes(x = Schooling, y = Life.expectancy)) +
+  geom_point()
+
+mod_max <- lm(Life.expectancy ~ .*. + I(infant.deaths^2) + I(under.five.deaths^2) + I(Polio^2) +I(Diphtheria^2) + I(HIV.AIDS^2), health)
+
+mod_best <- step(mod_max, direction = "both", trace = 0)
+summary(mod_best)
+
 ```
 
 -   
@@ -50,6 +104,12 @@ We are interested in creating a regression model that predicts a country's life 
     b.  Using the maximum model you used in (a) backward selection with Mallow's $C_p$ as your decision criteria to eliminate variables from your model.
 
 ```{r}
+library(leaps)
+
+var_sel <- regsubsets(Life.expectancy ~ .*. + I(infant.deaths^2) + I(under.five.deaths^2) + I(Polio^2) +I(Diphtheria^2) + I(HIV.AIDS^2), health, method='backward', nvmax = 100, really.big = TRUE)
+
+which.min(summary(var_sel)$cp) 
+coef(var_sel,32)
 ```
 
 -   
@@ -57,6 +117,30 @@ We are interested in creating a regression model that predicts a country's life 
     c.  Write your final regression model for predicting life expectancy.
 
 ```{r}
+best_final_model <- lm(
+  Life.expectancy ~ 
+    Status + Adult.Mortality + infant.deaths + Measles + BMI + 
+    under.five.deaths + Polio + Diphtheria + HIV.AIDS + 
+    Income.composition.of.resources + Schooling + 
+    I(infant.deaths^2) + I(under.five.deaths^2) + I(Polio^2) + 
+    I(Diphtheria^2) + I(HIV.AIDS^2) + 
+    Status:Adult.Mortality + Status:Measles + Status:Diphtheria + 
+    Adult.Mortality:Measles + Adult.Mortality:Polio + 
+    Adult.Mortality:Income.composition.of.resources + 
+    infant.deaths:BMI + infant.deaths:under.five.deaths + 
+    infant.deaths:Polio + infant.deaths:Diphtheria + 
+    Measles:BMI + Measles:Polio + Measles:Diphtheria + 
+    BMI:under.five.deaths + BMI:Polio + BMI:Schooling + 
+    under.five.deaths:Polio + under.five.deaths:Diphtheria + 
+    under.five.deaths:HIV.AIDS + 
+    under.five.deaths:Income.composition.of.resources + 
+    under.five.deaths:Schooling + 
+    Polio:HIV.AIDS + Polio:Schooling + 
+    Diphtheria:Income.composition.of.resources + Diphtheria:Schooling + 
+    HIV.AIDS:Income.composition.of.resources + 
+    Income.composition.of.resources:Schooling,
+  data = health
+)
 ```
 
 -   
@@ -64,4 +148,10 @@ We are interested in creating a regression model that predicts a country's life 
     d.  Determine if the assumptions of homoscedasticity and normally distributed residuals is violated. If one is violated, suggest a transformation of the response variable.
 
 ```{r}
+library(lmtest)
+plot(best_final_model,1)
+bptest(best_final_model)
+
+plot(best_final_model,2)
+ks.test(rstandard(best_final_model),"pnorm")
 ```
