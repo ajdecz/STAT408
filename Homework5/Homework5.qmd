@@ -117,7 +117,7 @@ coef(var_sel,32)
     c.  Write your final regression model for predicting life expectancy.
 
 ```{r}
-AIC_model <- lm( #this is my final regression model, I wrote out the model produced from using backward selection and MallowsCP and conducted an ANOVA to see if there's any difference between the two. It is clear that the model using bothways selection and AIC as criterion is more significant regarding the data. 
+best_model <- lm( #this is my final regression model, I wrote out the model produced from using backward selection and MallowsCP and conducted an ANOVA to see if there's any difference between the two. It is clear that the model using bothways selection and AIC as criterion is more significant regarding the data. 
   Life.expectancy ~ 
     Status + Adult.Mortality + infant.deaths + Measles + BMI + 
     under.five.deaths + Polio + Diphtheria + HIV.AIDS + 
@@ -142,26 +142,6 @@ AIC_model <- lm( #this is my final regression model, I wrote out the model produ
   data = health
 )
 
-Mallows_model <- lm(
-  Life.expectancy ~ 
-    Status + BMI + Diphtheria +
-    I(infant.deaths^2) + I(under.five.deaths^2) + I(Polio^2) +
-    I(Diphtheria^2) + I(HIV.AIDS^2) +
-    Status:Measles + Status:Diphtheria + Status:HIV.AIDS +
-    Adult.Mortality:BMI + Adult.Mortality:under.five.deaths +
-    Adult.Mortality:Diphtheria + Adult.Mortality:Schooling +
-    infant.deaths:BMI + infant.deaths:Polio + infant.deaths:Diphtheria +
-    infant.deaths:HIV.AIDS + Measles:BMI + Measles:under.five.deaths +
-    Measles:Polio + Measles:HIV.AIDS + 
-    BMI:Diphtheria + BMI:HIV.AIDS + BMI:Schooling +
-    under.five.deaths:Diphtheria + under.five.deaths:HIV.AIDS +
-    Polio:Diphtheria + Polio:Income.composition.of.resources +
-    Diphtheria:HIV.AIDS + HIV.AIDS:Schooling,
-  data = health
-)
-
-anova(AIC_model,Mallows_model)
-# F = 11.528 and p = 6.677e-14, meaning we reject the null and determine AIC model is significantly better fit than Mallows Model
 ```
 
 -   
@@ -170,9 +150,9 @@ anova(AIC_model,Mallows_model)
 
 ```{r}
 library(lmtest)
-plot(best_final_model,1)
-bptest(best_final_model)
+plot(best_model,1)
+bptest(best_model)
 
-plot(best_final_model,2)
-ks.test(rstandard(best_final_model),"pnorm")
+plot(best_model,2)
+ks.test(rstandard(best_model),"pnorm")
 ```

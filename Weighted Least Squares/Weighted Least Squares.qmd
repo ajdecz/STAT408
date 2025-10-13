@@ -1,0 +1,164 @@
+---
+title: "Weighted Least Squares"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+Again, consider a dataset of $n$ observations with response vector $\boldsymbol{y}$ and model matrix $\boldsymbol{X}$ such that $E(\boldsymbol{y}) = \boldsymbol{X}\boldsymbol{\beta}$ and normally distributed errors $\boldsymbol{\epsilon}$.
+
+**Ordinary Least Squares**: The method of finding the best linear unbiased estimator (BLUE) of $\boldsymbol{\beta}$ assuming independence and *homoscedasticity* (what we have been doing so far)
+
+**Weighted Least Squares**: The method of finding the best linear unbiased estimator (BLUE) of $\boldsymbol{\beta}$ assuming independence and *heteroscedasticity*
+
+The loss function (function of the sum of squared errors) that we want to minimize is
+
+$$
+\text{SSE} = \sum_{i=1}^n w_i (y_i - \boldsymbol{X}_i\boldsymbol{\beta})^2
+$$
+
+where $\boldsymbol{X}_i$ is the $i^{th}$ row of $\boldsymbol{X}$ and $w_i > 0$ is the **known** weight for individual $i$
+
+-   Larger values of $w_i$ indicate observations that should have more weight
+
+This loss function is equivalent to assume that $y_i$ is normally distributed with
+
+-   $E(y_i | \boldsymbol{X}_i) = \boldsymbol{X}_i \boldsymbol{\beta} = \beta_0 +\beta_1X_{i1} + \cdots + \beta_{k-1}X_{i,k-1}$ and
+
+-   $\text{Var}(y_i | \boldsymbol{X}_i) = \frac{\sigma^2}{w_i}$
+
+-   observations with higher weights will have lower variance, and a higher determination on the estimation of the model parameters
+
+### Example
+
+Consider the mtcars dataset in R, and model where we fit the fuel efficiency of the car by its weight.
+
+```{r}
+mod <- lm(mpg ~ wt,mtcars)
+plot(mod,1) #horn shaped pattern, violation of homoscedasiticity
+library(lmtest)
+bptest(mod) #saying for now the assumption is violated
+```
+
+can maybe make out a small horn shaped pattern, use this as a motivating example
+
+## Solution for Weighted Least Squares Regression
+
+Rewrite the loss function in linear algebra notation as
+
+$$
+(\boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta})' \Sigma^{-1}(\boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta})
+$$
+
+where $\Sigma$ is the variance-covariance matrix for $\boldsymbol{y}$. In weighted least squares regression problems, we assume
+
+$$
+\Sigma_{ij} = \left\{ \begin{array}{ll} \frac{1}{w_i} & i = j \\ 0 & i \neq j \end{array} \right.
+$$
+
+Note, the $\sigma^2$
+
+variance is a constant, and will not affect the estimation procedure
+
+the values in the variance-covariance matrix will all be multiplied by $\sigma^2$.
+
+-   **Aitken Model**: Aitken proved that ordinary least squares regression problems can be extended to find the BLUE of $\boldsymbol{\beta}$ with a general variance-covariance matrix $\Sigma$ (hereafter referred to as **generalized least squares**.
+
+The BLUE of $\boldsymbol{\beta}$ is
+
+$$
+\hat{\boldsymbol{\beta}} = (\boldsymbol{X}'\Sigma^{-1}\boldsymbol{X})^{-1}\boldsymbol{X}'\Sigma^{-1}\boldsymbol{y}
+$$
+
+Note: if we know the values of $\sigma$ aside from a variance $\sigma^2$, this is easy to estimate. Otherwise, if we do not know the full form of $\sigma$ , we would have to use root finding techniques.
+
+We can still perform all of the confidence intervals and hypothesis test values as we have before!
+
+-   Model Sums of Squares (for overall model): $\text{SSM} = ( \boldsymbol{X}\hat{\boldsymbol{\beta}} - \bar{y}\boldsymbol{1})' \Sigma^{-1}(\boldsymbol{X}\hat{\boldsymbol{\beta}} - \bar{y}\boldsymbol{1}) = \sum_{i=1}^n w_i(\hat{y}_i - \bar{y})^2$
+
+    -   $\boldsymbol{1}$ is a vector of 1s
+
+-   Sum of Squared Errors: $\text{SSE} = (\boldsymbol{y} - \boldsymbol{X}\hat{\boldsymbol{\beta}})' \Sigma^{-1}(\boldsymbol{y} - \boldsymbol{X}\hat{\boldsymbol{\beta}}) = \sum_{i=1}^n w_i(y_i - \hat{y}_i)^2$
+
+-   Total Sums of Squares: $\text{SST} = (\boldsymbol{y} - \bar{y}\boldsymbol{1})' \Sigma^{-1}(\boldsymbol{y} - \bar{y}\boldsymbol{1}) = \sum_{i=1}^n w_i(y_i - \bar{y})^2$
+
+-   Degrees of Freedom: $dfM = k - 1$, $dfE = n-k$
+
+-   Mean Squared Error: $\hat{\sigma}^2 = \frac{\text{SSE}}{n-k} = \frac{1}{n-k}\sum_{i=1}^n w_i(y_i - \hat{y}_i)^2$
+
+-   $\hat{\text{Var}}(\hat{\boldsymbol{\beta}}) = \hat{\sigma}^2 (\boldsymbol{X}'\Sigma^{-1}\boldsymbol{X})^{-1}$: Used in confidence intervals
+
+-   $\boldsymbol{H} = \boldsymbol{X}(\boldsymbol{X}'\Sigma^{-1}\boldsymbol{X})^{-1}\boldsymbol{X}'\Sigma^{-1}$: Used in finding influential observations
+
+-   $r^2 = \frac{SSM}{SST}$
+
+-   Notes:
+
+    -   Once you know a parameter estimate $\hat{\beta}_j$ and an estimate of its variance, $\hat{\text{Var}}(\hat{\beta}_j)$ , we can use the same formula as our multiple linear regression notes to calculate a confidence interval.
+
+    -   Also, running a reduced and full model with the same weights will produce valid results for a partial F test.
+
+Aitken also proved that, using our weighted least squares regression values $$\frac{\hat{\beta}_j - \beta_j}{\sqrt{\hat{\text{Var}}(\hat{\beta}_j)}} \sim t_{df = n-k}$$
+
+So we can calculate
+
+-   $100(1- \alpha)$% confidence intervals for $\beta_j$
+
+-   Overall and partial hypothesis tests for the linear model
+
+-   $100(1- \alpha)$% confidence intervals for $\mu_{y|\boldsymbol{x}_0}$
+
+-   $100(1- \alpha)$% prediction intervals for $Y_{\boldsymbol{x}_0}$
+
+the same way as we have always done, expect now we use or weighted least squares output!
+
+## How to choose weights?
+
+All of the above methods assume that the weights are chosen in advance by the statistician/data scientist. What are the best methods of weights to be chosen?
+
+Unfortunately, no perfect method exists to choose the proper weights!
+
+Reconsider the above residual plot.
+
+Because variance is increasing, we want the weights to be decreasing, if the variance was decreasing we would want the weights to be increasing. Because if there is less variation in the data we would want more weight on those values, and less weight on places where variance is way larger
+
+```{r}
+plot(mod,1)
+```
+
+### Procedure for weight calculation
+
+1.  Calculate $\hat{\boldsymbol{\beta}}$ from OLS regression fitting $|\boldsymbol{y}|$ to a model with matrix $\boldsymbol{X}$
+2.  Set
+    -   $w_i = \frac{1}{\hat{y}_i^2}$ if the horn is increasing as $\hat{y}$ increases
+
+    -   $w_i = \hat{y}_i^2$ if the horn is decreasing as $\hat{y}$ increases
+3.  Perform WLS
+    1.  Intuition for the weights: in a residual plot, if the variance is increasing (horn is increasing), we want the weights to decrease, and vice versa.
+    2.  if there are some predictions that are negative and some that are positive, adjust the predictions by the minimum of the fitted values (adjust fitted values so they are all positive or all negative).
+
+**Example**
+
+Perform weighted least squares regression of the mtcars model described above.
+
+```{r}
+mod_ols <- lm(mpg ~ wt, mtcars) #ordinary least squares regression
+wts <- 1/fitted(mod_ols)^2 #because horn is increasing
+# fitted(mod_ols) provides the fitted values
+mod_wls <- lm(mpg ~ wt, mtcars, weights = wts)
+plot(mod_ols,1)
+plot(mod_wls,1) # looks more fitted and normally distributed results
+library(lmtest)
+bptest(mod_wls) # p - value increased so we did increase homoscedasticity 
+```
+
+**Note on the different times to use weighted least squares regression vs. transformation of the response**
+
+-   If homoscedasticity is violated, but normality is not, use weighted least squares regression
+
+-   If normality is violated (and homoscedasticity is violated), then perform a transformation of the response

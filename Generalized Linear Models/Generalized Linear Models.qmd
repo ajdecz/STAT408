@@ -1,0 +1,244 @@
+---
+title: "Generalized Linear Models"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+*Background Information*: Throughout the semester, we have used linear regression techniques to obtain predictions/expectations/means for a particular response variable ($Y$) based on a set of explanatory variables ($X_1,X_2,\dots,X_{k-1}$) which can be numeric or categorical, including interaction and polynomial terms. We have maintained a set of assumptions for this model, specifically that $$Y_i \sim \mathcal{N}(\boldsymbol{X}_i\boldsymbol{\beta},\sigma^2)$$ where we can add weights $w_i$ if we cannot assume homoscedasticity or we can transform $Y_i$ if we cannot assume normality.
+
+The probability density function (pdf) for this model is
+
+$$p(y_i) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp\left[-\frac{1}{2\sigma^2}\left(y_i - \boldsymbol{X}_i \boldsymbol{\beta}\right)^2\right]$$
+
+where
+
+$$\hat{\boldsymbol{\beta}} = \min_{\boldsymbol{\beta}} \sum_{i=1}^n(y_i - \boldsymbol{X}_i\boldsymbol{\beta})^2$$
+
+In this section, we will discuss a family of distributions such that we can perform linear regression without needing to assume the data are normally distributed! More specifically, we will extend linear regression techniques for
+
+-   Binary Response Variables and
+
+-   Count Response Variables
+
+**Exponential Family**: A parametric set of probability distributions for which we can easily find sufficients statistics, expected values, covariances and other special properties of the distribution
+
+Common Distributions that are in the exponential family:
+
+-   Binomial (when $n$ is known)
+
+-   Poisson
+
+-   Gamma
+
+-   Exponential
+
+-   Normal
+
+**Exponential Dispersion Family**: A subset of exponential family distributions which follow the form
+
+$$p(y) = \exp\left\{\frac{1}{\phi}(y\theta - b(\theta)) + c(y,\phi)\right\}$$
+
+-   $\theta$ is the \`\`natural parameter''
+-   $\phi$ is the \`\`dispersion parameter'' (normally not of direct interest to us)
+-   $b(\theta)$ is the \`\`log-normalizer''
+-   $c(y,\phi)$ is a value to ensure that $p(y)$ is a proper probability density function
+
+It can be proven that $Y \sim \mathcal{N}(\mu,\sigma^2)$ is an exponential dispersion family with - $\theta = \mu$, $\phi = \sigma^2$, $b(\theta) = \frac{\mu^2}{2}$ and $c(y,\phi) = \frac{-y^2}{2\sigma^2}$
+
+Exponential dispersion family parameters also have the useful property that
+
+$$E(Y) = \frac{db(\theta)}{d\theta} \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\; \text{Var}(Y) = \phi\times\frac{d^2b(\theta)}{d\theta^2}$$
+
+meaning the expected value (the value we are trying to estimate using linear regression) is a direct function of the natural parameter $\theta$!
+
+**Generalized Linear Model (GLM)**: A generalization of linear regression methods for exponential dispersion family distributions
+
+For a response vector $\boldsymbol{y}$ and model matrix $\boldsymbol{X}$, GLM performs the following
+
+-   Sets $\theta_i = \boldsymbol{X}_i \boldsymbol{\beta}$
+
+$$\hat{\boldsymbol{\beta}} = \min_{\boldsymbol{\beta}} \sum_{i=1}^n l(y_i, \theta_i)$$ where $l(y_i, \theta_i) = (y_i \theta_i - b(\theta_i))$ is the **unit log-likelihood** of a model with a prediction $\theta_i = \boldsymbol{X}_i\boldsymbol{\beta}$ for a given linear model
+
+**Logistic Regression**: A GLM where the response variable follows a binomial distribution $Y_i \sim \text{Binomial}(n_i,p_i)$ where $n_i$ is known
+
+**Logit Function**: A function that takes an input of a number between 0 and 1, and outputs an unconstrained real number. $\text{logit}(p) = \log(p/(1-p))$
+
+We will show mathematically that
+
+-   $\theta_i = \text{logit}(p_i)$
+
+-   $\phi = 1$
+
+-   $b(\theta_i) = -\log(1 + \exp(\theta_i))$
+
+The estimates of $\boldsymbol{\beta}$ can subsequently found by
+
+$$\hat{\boldsymbol{\beta}} = \min_{\boldsymbol{\beta}} \sum_{i=1}^n (y_i \boldsymbol{X}_i\boldsymbol{\beta} + n\log(1 + \exp(\boldsymbol{X}_i\boldsymbol{\beta}))$$
+
+-   Unlike linear regression, $\hat{\boldsymbol{\beta}}$ does not have a closed form solution, so optimization techniques such as gradient descent or Newton-Raphson algorithm can be used to find these values.
+
+The above minimization assume $n_i = 1$. We will discuss ways to interpret logistic regression models using the Titanic dataset.
+
+```{r}
+```
+
+-   We believe that age, sex, and passenger class are the most important explanatory variables that can be used to predicted whether or not a passenger survived.
+
+-   Let's fit a logistic regression model for the Titanic dataset where we want to predict survival rate of passengers by their age, sex, and passenger class.
+
+```{r}
+```
+
+### Questions
+
+-   Interpret the parameter estimate associated with Male in the context of the problem.
+
+-   Interpret the parameter estimate associated with Age in the context of the problem.
+
+-   Predict the survival probability for a female passenger in class 1 aged 35.
+
+```{r}
+```
+
+
+## Confidence intervals for GLMs
+
+Unlike traditional linear regression, $\hat{\boldsymbol{\beta}}$ does not have an exact distribution for which we can make inference. However, using the CLT, if the error degrees of freedom $n-k$ is sufficiently large, $$\frac{\hat{\beta}_j - \beta_j}{\sqrt{\hat{\text{Var}}(\hat{\beta}_j)}} \sim \mathcal{N}(0,1)$$
+
+for $j = 1,\cdots,k-1$ where $\hat{\text{Var}}(\hat{\boldsymbol{\beta}}) = \hat{\mathcal{I}}(\boldsymbol{\beta})^{-1}$, $\hat{\mathcal{I}}$ is the estimated Fisher information matrix calculated from the expected value of the second derivative of the log-likelihood.
+
+The following types of intervals are called **Wald intervals**
+
+### 100(1 - $\alpha$)% Wald confidence interval for $\beta_j$
+
+$$\hat{\beta}_j \pm z^*_{1-\frac{\alpha}{2}}\sqrt{\hat{\text{Var}}(\hat{\beta}_j)}$$
+
+A more exact confidence interval can be calculated using the fact that, if the sample size is sufficiently large, then
+
+$$-2\left[\sum_{i=1}^n l(y_i,\boldsymbol{X}_i\boldsymbol{\beta}) - \sum_{i=1}^n l(y_i,\boldsymbol{X}_i\hat{\boldsymbol{\beta}}) \right] \sim \chi^2_{n-k}$$ Optimization searching algorithms can be used to find a **profile** confidence interval
+
+### 100(1 - $\alpha$) profile confidence interval for $\beta_j$
+
+$$\left\{{\beta}_j : -2\left[\sum_{i=1}^n l(y_i,\boldsymbol{X}_i\boldsymbol{\beta}) - \sum_{i=1}^n l(y_i,\boldsymbol{X}_i\hat{\boldsymbol{\beta}}) \right] \leq \chi^{2*}_{1-\alpha,n-k}\right\}$$
+
+This type of confidence interval is what R calculates in confint
+
+### Example
+
+Calculate 95% Wald and profile confidence intervals for the parameter associated with Age. Interpret the intervals in the context of the problem.
+
+```{r}
+```
+
+## Hypothesis Testing for GLMs
+
+**Deviance**: A quality-of-fit statistic for a model that is often used for statistical hypothesis testing $D(\boldsymbol{y} | \boldsymbol{\theta}) = 2\sum_{i=1}^n l(y_i | \theta_i)$
+
+Deviance is defined in terms of three different models
+
+-   **Null Model**
+
+-   **Proposed Model**
+
+-   **Saturated Model**
+
+In the summary of a glm, the output gives us two deviance values:
+
+-   **Null Deviance**: $D(\boldsymbol{y} | \boldsymbol{y}) - D(\boldsymbol{y}|\boldsymbol{\theta})$
+
+-   **Residual Deviance**: $D(\boldsymbol{y} | \boldsymbol{y}) - D(\boldsymbol{y}|\boldsymbol{X}\hat{\boldsymbol{\beta}})$
+
+-   In statistical theory, under $H_0$, (Null Deviance - Residual Deviance) follows a Chi-squared distribution with $(n-1) - (n-k) = k - 1$ degrees of freedom. Difference in the two deviances is related to the SSM in linear regression.
+
+    -   If $p-value < \alpha$, we reject $H_0$
+
+    -   If $p-value \geq \alpha$, we fail to reject $H_0$
+
+### Questions
+
+Perform a formal hypothesis test to determine if our overall logistic regression model is statistically significant.
+
+```{r}
+```
+
+Perform a formal hypothesis test to determine if adding passenger class to a logistic regression model that already includes age and gender is statistically significant.
+
+```{r}
+```
+
+-   For partial hypothesis tests, $\chi^2 = \text{Residual Deviance for Reduced Model - Residual Deviance for the Full Model}$
+
+-   df = difference in the residual degrees of freedom for the two models, number of parameters we are adding to the model
+
+You can also check for multicollinearity for GLMs using the same VIF function!
+
+Save Poisson regression and checking the model assumptions until after the midterm!
+
+**Poisson Regression**: A GLM where the response variable follows a Poisson distribution $Y_i \sim \text{Poisson}(\lambda_i)$
+
+We will show mathematically that
+
+-   $\theta_i = \text{log}(\lambda_i)$
+
+-   $\phi = 1$
+
+-   $b(\theta_i) = \exp(\theta_i)$
+
+Important piece of information about Poisson regression, $E(Y_i) = \text{Var}(Y_i) = \lambda_i$
+
+By default, R uses a log-link. This means we assume that $\log{\lambda_i} = \boldsymbol{X}_i \boldsymbol{\beta}$
+
+We will discuss ways to interpret Poisson regression models using the NYC_Bikes dataset.
+
+```{r}
+```
+
+-   We believe that high and low temperature as well as precipitation affects the number of bikers that cross the Brooklyn Bridge on a given day
+
+-   Let's fit a Poisson regression model for the NYC_Bikes dataset where we want to predict number of bikes that cross the Brooklyn Bridge by daily high and low temperature as well as precipitation.
+
+```{r}
+```
+
+### Questions
+
+-   Interpret the parameter estimate associated with low temperature in the context of the problem.
+
+-   Interpret the parameter estimate associated with precipitation in the context of the problem.
+
+-   Predict the number of bikes that cross the Brooklyn Bridge for a day with a high of 77, a low of 65 and precipitation of 0.25.
+
+```{r}
+```
+
+-   Perform a hypothesis test to determine if the Poisson regression model is statistically significant at $\alpha = 0.05$ (Note: The comparison of the null deviance and residual deviance, like we did for logistic regression, also can be used for Poisson regression!)
+
+```{r}
+```
+
+## Checking assumptions of linearity for GLMs
+
+For ordinary least squares regression, we looked at the residual plot to determine if the assumption of homoscedasticity is violated. This can also determine if our genearlized linear regression models are a good fit as well (i.e. checks goodness of fit between the $Y_i$ and $\theta_i$)
+
+**Pearson Residuals**: $\frac{Y_i - E(Y_i)}{\sqrt{\text{Var}(Y_i)}}$
+
+-   For logistic regression - Pearson residuals = $\frac{Y_i - n_i\hat{p}_i}{\sqrt{n_i\hat{p}_i(1-\hat{p}_i)}}$
+
+-   For Poisson regression - Pearson residuals = $\frac{Y_i - \hat{\lambda}_i}{\sqrt{\hat{\lambda}_i}}$
+
+We can plot the fitted values from our GLM with the Pearson residuals, and if the points are randomly scattered, the model provides a good fit for the data! If not, we can try other modeling techniques (adding polynomial terms, overdispersion,etc.)
+
+### Example
+
+Check if the Poisson regression model provides a good fit for the data
+
+```{r}
+```
+
+You can also check for influential observations using Cook's distance.
