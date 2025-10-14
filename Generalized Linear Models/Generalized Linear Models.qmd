@@ -106,7 +106,6 @@ The above minimization assume $n_i = 1$. We will discuss ways to interpret logis
 ```{r}
 ```
 
-
 ## Confidence intervals for GLMs
 
 Unlike traditional linear regression, $\hat{\boldsymbol{\beta}}$ does not have an exact distribution for which we can make inference. However, using the CLT, if the error degrees of freedom $n-k$ is sufficiently large, $$\frac{\hat{\beta}_j - \beta_j}{\sqrt{\hat{\text{Var}}(\hat{\beta}_j)}} \sim \mathcal{N}(0,1)$$
