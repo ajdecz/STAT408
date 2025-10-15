@@ -42,7 +42,7 @@ We are interested in creating a regression model that predicts a country's life 
 
     a.  Should we include any interaction or polynomial terms in our maximum model? Explain your reasoning.
 
-        Yes we should include both polynomial and interaction terms in our maximum model. Scatterplots showed clear curvature for variables like infant.deaths, under.five.deaths, Polio, Diphtheria, and HIV.AIDS, so squared terms were added to capture these nonlinear relationships. Several interactions, especially those involving status and socioeconomic factors like Income.composition.of.resources and Schooling, also appeared to have different effects and proved to be statistically significant using the both ways step function using AIC as criterion for inclusion in the best model.
+        Yes we should include both polynomial and interaction terms in our maximum model. Scatterplots showed clear curvature for variables like infant.deaths, under.five.deaths, Polio, Diphtheria, and HIV.AIDS, so squared terms were added to capture these nonlinear relationships. Several interactions, especially those involving status and socioeconomic factors like Income.composition.of.resources and Schooling, also appeared to have different effects and proved to be statistically significant using the both ways step function using AIC as criterion for inclusion in the model.
 
 ```{r}
 library(tidyverse)
@@ -117,30 +117,43 @@ coef(var_sel,32)
     c.  Write your final regression model for predicting life expectancy.
 
 ```{r}
-best_model <- lm( #this is my final regression model, I wrote out the model produced from using backward selection and MallowsCP and conducted an ANOVA to see if there's any difference between the two. It is clear that the model using bothways selection and AIC as criterion is more significant regarding the data. 
+final_model <- lm(
   Life.expectancy ~ 
-    Status + Adult.Mortality + infant.deaths + Measles + BMI + 
-    under.five.deaths + Polio + Diphtheria + HIV.AIDS + 
-    Income.composition.of.resources + Schooling + 
-    I(infant.deaths^2) + I(under.five.deaths^2) + I(Polio^2) + 
-    I(Diphtheria^2) + I(HIV.AIDS^2) + 
-    Status:Adult.Mortality + Status:Measles + Status:Diphtheria + 
-    Adult.Mortality:Measles + Adult.Mortality:Polio + 
-    Adult.Mortality:Income.composition.of.resources + 
-    infant.deaths:BMI + infant.deaths:under.five.deaths + 
-    infant.deaths:Polio + infant.deaths:Diphtheria + 
-    Measles:BMI + Measles:Polio + Measles:Diphtheria + 
-    BMI:under.five.deaths + BMI:Polio + BMI:Schooling + 
-    under.five.deaths:Polio + under.five.deaths:Diphtheria + 
-    under.five.deaths:HIV.AIDS + 
-    under.five.deaths:Income.composition.of.resources + 
-    under.five.deaths:Schooling + 
-    Polio:HIV.AIDS + Polio:Schooling + 
-    Diphtheria:Income.composition.of.resources + Diphtheria:Schooling + 
-    HIV.AIDS:Income.composition.of.resources + 
-    Income.composition.of.resources:Schooling,
-  data = health
+    Status +
+    BMI +
+    Diphtheria +
+    I(infant.deaths^2) +
+    I(under.five.deaths^2) +
+    I(Polio^2) +
+    I(Diphtheria^2) +
+    I(HIV.AIDS^2) +
+    Status:Measles +
+    Status:Diphtheria +
+    Status:HIV.AIDS +
+    Adult.Mortality:BMI +
+    Adult.Mortality:under.five.deaths +
+    Adult.Mortality:Diphtheria +
+    Adult.Mortality:Schooling +
+    infant.deaths:BMI +
+    infant.deaths:Polio +
+    infant.deaths:Diphtheria +
+    infant.deaths:HIV.AIDS +
+    Measles:BMI +
+    Measles:under.five.deaths +
+    Measles:Polio +
+    Measles:HIV.AIDS +
+    BMI:Diphtheria +
+    BMI:HIV.AIDS +
+    BMI:Schooling +
+    under.five.deaths:Diphtheria +
+    under.five.deaths:HIV.AIDS +
+    Polio:Diphtheria +
+    Polio:Income.composition.of.resources +
+    Diphtheria:HIV.AIDS +
+    HIV.AIDS:Schooling,
+    health
 )
+
 
 ```
 
@@ -148,11 +161,13 @@ best_model <- lm( #this is my final regression model, I wrote out the model prod
 
     d.  Determine if the assumptions of homoscedasticity and normally distributed residuals is violated. If one is violated, suggest a transformation of the response variable.
 
+        None of the assumptions are violated, therefore no transformations of the response variable would be needed.
+
 ```{r}
 library(lmtest)
-plot(best_model,1)
-bptest(best_model)
+plot(final_model,1)
+bptest(final_model)
 
-plot(best_model,2)
-ks.test(rstandard(best_model),"pnorm")
+plot(final_model,2)
+ks.test(rstandard(final_model),"pnorm")
 ```
