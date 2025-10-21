@@ -86,6 +86,9 @@ $$\hat{\boldsymbol{\beta}} = \min_{\boldsymbol{\beta}} \sum_{i=1}^n (y_i \boldsy
 The above minimization assume $n_i = 1$. We will discuss ways to interpret logistic regression models using the Titanic dataset.
 
 ```{r}
+Titanic <- read.csv("~/stat408/Generalized Linear Models/Data/Titanic.csv")
+#remove any observations with missing info
+Titanic <- na.omit(Titanic)
 ```
 
 -   We believe that age, sex, and passenger class are the most important explanatory variables that can be used to predicted whether or not a passenger survived.
@@ -93,17 +96,36 @@ The above minimization assume $n_i = 1$. We will discuss ways to interpret logis
 -   Let's fit a logistic regression model for the Titanic dataset where we want to predict survival rate of passengers by their age, sex, and passenger class.
 
 ```{r}
+#Recoding Passenger class to be a factor 
+Titanic$Pclass <- as.factor(Titanic$Pclass)
+mod_glm <- glm(Survived ~ Age + Sex + Pclass, 
+               data = Titanic,
+               family = binomial())
+summary(mod_glm)
 ```
 
 ### Questions
 
 -   Interpret the parameter estimate associated with Male in the context of the problem.
 
+    -2.523: the expected log odds of surviving the titanic are 2.253 lower for males than for females, holding age and passenger class constant
+
+    the expected odds of surviving the titanic for males are exp(-2.523) = 0.1051 times the odds of surviving for females, holding age and passenger class constant.
+
 -   Interpret the parameter estimate associated with Age in the context of the problem.
+
+    -0.03699: As age increases by one year, the expected log odds of surviving the titanic decrease by 0.03699, holding sex and passenger class constant.
+
+    As age increases by 1 year, the expected odds of surviving the titanic change by a factor of exp(-0.03699) = 0.9637, holding sex and passenger class constant.
 
 -   Predict the survival probability for a female passenger in class 1 aged 35.
 
 ```{r}
+newdata <- data.frame(Age=35,Sex='female',Pclass = '1')
+predict(mod_glm,newdata) #output is the log odds 
+#we can put the log odds into the formal exp(x)/(1+exp(x))
+# OR
+predict.glm(mod_glm,newdata,type = 'response')
 ```
 
 ## Confidence intervals for GLMs
@@ -133,6 +155,8 @@ This type of confidence interval is what R calculates in confint
 Calculate 95% Wald and profile confidence intervals for the parameter associated with Age. Interpret the intervals in the context of the problem.
 
 ```{r}
+# wald interval 
+beta <- coef(mod_glm)
 ```
 
 ## Hypothesis Testing for GLMs

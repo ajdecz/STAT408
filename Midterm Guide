@@ -1,0 +1,98 @@
+Format: 
+  1. True/False/Amend
+  2. Mathematics using correlation coefficients, summary statistics, and sums of squares from ANOVA
+  3. Two questions about using R output to answer questions 
+
+Key Topics: 
+
+  Simple Linear Regression 
+    - interpret estimates of the population intercept and slope 
+    - calculate and interpret confidence intervals for the parameter estimates
+      (will give quantiles that will be useful)
+    - perform hypothesis tests for simple linear regression
+    - calculate and interpret confidence and prediction intervals for point 
+      estimates given X. Like the questions where you need to find a reasonable 
+      range using those formulas. Will give us variances and plug into an equation. 
+      MLR do not need to know how to do linear algebra by hand 
+    - know the relationships between t and f distributions
+    - check if the assumptions of normality is violated. Knowing which output or 
+      which test goes with which to check. 
+  
+  ANOVA
+    - Calculate F statistics and mean squares from an ANOVA table. Do not worry 
+      about p values 
+    - Calculate and interpret r squared values using an ANOVA table 
+    
+  Multiple Linear Regression
+    - Interpret estimates of parameters from the least squares regression line, for 
+      both numeric and categorical explanatory variables.
+    - Calculate and interpret confidence intervals for these parameters. 
+    - Perform formal overall and partial f tests for statistical significance.
+    - Calculate and interpret confidence and predition intervals using a given mean 
+      squared error and variance of the prediction. 
+    - Checking if assumptions are violated 
+    
+  Influential Observations 
+    - do not need MLE, just know diff btwn estimates of variances are between 
+      maximum likelihood and least squares
+    - Differences between hat values, standardized residuals, and studentized
+      residuals 
+    - Know how to determine an observation is influential using the above values 
+    - Know how to determine if an observation is influential using Cook's distance. 
+      Don't need to know how to calculate, just how we use it to determine if 
+      something is influential 
+    
+  Confounding and Interactions
+    - determine if there potentially is an issue with multicollinearity 
+    - what could happen to the model if there is an issue with multicollinearity 
+    - how to interpret models that include interaction terms. 
+    - how to conduct hypothesis tests for models with interaction terms 
+    - how to check assumptions
+  
+  Transformation and Polynomial
+    - know when to properly apply different transformations based on how the 
+      assumptions are violated 
+    - know how to apply the bullet points from multiple linear regression to 
+      transform models
+        - calculating confidence intervals
+        - performing hypothesis tests 
+        - checking assumptions 
+    - same thing for adding polynomial terms 
+  
+  Variable selection
+    - know why it is important to add multiple terms to your maximum model
+    - Know how to identify the best model based on different selection criterion
+      - adjusted rsquared, AIC, and Mallow's CP (don't need to know they work). 
+        Based on the results how do we determine which is the best. Will give models 
+        with all those statistics and have to identify which is the best model based on 
+        the results. Choose which is the best option, the values are independent per 
+        question. 
+    - Check assumptions 
+  
+  Weighted Least Squares
+    - know when to use weighted least squares based on what assumptions are violated 
+    - how to properly calculate the weights for least squares regression 
+    - all of the below, same as multiple linear regression
+      - calculate and interpret confidence intervals 
+      - perform hypothesis tests 
+      - check model assumptions 
+    
+  Generalized Linear Models / Logistic Regression
+    - don't need to know the theory or differences between families or how to check 
+    - interpret logistic regression model parameter estimates and confidence intervals 
+    - difference between wald and profile confidence intervals, and how to interpret 
+      them, 
+    - know how to perform a chi square test for significance of model 
+    parameters 
+    - know how to convert a log odds to a probability, and 
+    vice versa 
+  
+  General
+    - based on an output know which deviances we need to calculate proper outputs 
+    - if we haved a test statistic (t) and it follows a 
+    distribution with df = v, then t^2 is F df1=1 and df2=v
+    
+4 questions 
+  as few as 3 as many as 6(true false) parts per question
+  
+  
