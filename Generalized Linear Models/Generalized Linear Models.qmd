@@ -156,8 +156,14 @@ Calculate 95% Wald and profile confidence intervals for the parameter associated
 
 ```{r}
 # wald interval 
-beta <- coef(mod_glm)
+beta <- coef(mod_glm)["Age"]
+var_beta <- vcov(mod_glm)["Age","Age"]
+crit <- qnorm(0.975)
+beta + c(-1,1) * crit * sqrt(var_beta)
+confint(mod_glm, "Age")
 ```
+
+We are 95% confident that as age increases by 1 year, the odds of surviving the titanic change by a factor between
 
 ## Hypothesis Testing for GLMs
 
@@ -187,15 +193,29 @@ In the summary of a glm, the output gives us two deviance values:
 
 Perform a formal hypothesis test to determine if our overall logistic regression model is statistically significant.
 
-```{r}
-```
-
 Perform a formal hypothesis test to determine if adding passenger class to a logistic regression model that already includes age and gender is statistically significant.
 
+Reduced Model: $\text{logit}(\hat{p}) = \beta_0 + \beta_1 Age + \beta_2 SexMale$
+
+Full Model: $\text{logit}(\hat{p}) = \beta_0 + \beta_1 Age + \beta_2 SexMale + \beta3 PClass2 + \beta_4 Pclass3$
+
+$H_0: \beta_j = 0: j = 3,4 H_a: \exists \beta_j \neq 0: j = 3,4$
+
 ```{r}
+mod_red_glm <- glm(Survived ~ Age + Sex,
+                   Titanic, family = binomial())
+anova(mod_red_glm, mod_glm)
 ```
 
--   For partial hypothesis tests, $\chi^2 = \text{Residual Deviance for Reduced Model - Residual Deviance for the Full Model}$
+-   $X^2 = 102.67$ on 2 df, $p < 2.22 x 10^{-16}$ , so we reject the null hypothesis and conclude that adding passenger class to a logistic regression model predicting survival of the titanic with age and sex already included is statistically significant.
+
+-   For partial hypothesis tests, $\chi^2 = \text{Residual Deviance for Reduced}$
+
+-   This is similar to the numerator sums of squares for partial F tests being the sse_reduced model - the sse_full
+
+-   it acts as the 'sums of squares' that are added to the model
+
+-   Model - Residual Deviance for the Full Model}\$
 
 -   df = difference in the residual degrees of freedom for the two models, number of parameters we are adding to the model
 
@@ -204,6 +224,8 @@ You can also check for multicollinearity for GLMs using the same VIF function!
 Save Poisson regression and checking the model assumptions until after the midterm!
 
 **Poisson Regression**: A GLM where the response variable follows a Poisson distribution $Y_i \sim \text{Poisson}(\lambda_i)$
+
+this distribution is primarily used for count data
 
 We will show mathematically that
 
@@ -215,11 +237,16 @@ We will show mathematically that
 
 Important piece of information about Poisson regression, $E(Y_i) = \text{Var}(Y_i) = \lambda_i$
 
+we will model the average, $\lambda{i}$ using a log.
+
 By default, R uses a log-link. This means we assume that $\log{\lambda_i} = \boldsymbol{X}_i \boldsymbol{\beta}$
+
+note: even though $\lambda$ represents both the mean and the variance, interpretations of the poisson regression parameters are expressed through the mean.
 
 We will discuss ways to interpret Poisson regression models using the NYC_Bikes dataset.
 
 ```{r}
+Bikes <- read.csv('Data/NYC_Bikes.csv')
 ```
 
 -   We believe that high and low temperature as well as precipitation affects the number of bikers that cross the Brooklyn Bridge on a given day
@@ -227,23 +254,58 @@ We will discuss ways to interpret Poisson regression models using the NYC_Bikes 
 -   Let's fit a Poisson regression model for the NYC_Bikes dataset where we want to predict number of bikes that cross the Brooklyn Bridge by daily high and low temperature as well as precipitation.
 
 ```{r}
+# convert precipitation to numeric 
+Bikes$Precipitation[Bikes$Precipitation == 'T'] <- 0
+Bikes$Precipitation[Bikes$Precipitation == '0.47 (S)'] <- 0.47
+Bikes$Precipitation <- as.numeric(Bikes$Precipitation)
+
+mod_pois <- glm(Brooklyn.Bridge ~ High.Temp...F. + Low.Temp...F. + Precipitation, Bikes, family = poisson())
+
+summary(mod_pois)
 ```
+
+$\log(\hat{\lambda}) = 6.416 + 0.02878 Hi - 0.008046 Lo - 2.767 Precip$
 
 ### Questions
 
 -   Interpret the parameter estimate associated with low temperature in the context of the problem.
 
+    -   \- 0.08046, as the low daily temperature increases by one degree Fahrenheit, the average number of bikers on the Brooklyn bridge changes by a factor of exp(-0.008046) = 0.9920, holding all other variables constant.
+
 -   Interpret the parameter estimate associated with precipitation in the context of the problem.
+
+    -   -2.767, as the precipitation increases by one inch, the average number of bikers per day on the Brooklyn bridge decreases by a factor of exp(-2.767) = 0.0629 holding all other variables constant.
 
 -   Predict the number of bikes that cross the Brooklyn Bridge for a day with a high of 77, a low of 65 and precipitation of 0.25.
 
 ```{r}
+newdata <- data.frame(High.Temp...F. = 77, Low.Temp...F. = 65, 
+                      Precipitation = 0.25)
+
+predict.glm(mod_pois, newdata, type = 'response')
+
+
+
 ```
+
+-   Recall, we can use the same methods as logistic regression to calculate Wald and profile confidence intervals for Poisson regression.
 
 -   Perform a hypothesis test to determine if the Poisson regression model is statistically significant at $\alpha = 0.05$ (Note: The comparison of the null deviance and residual deviance, like we did for logistic regression, also can be used for Poisson regression!)
 
+-   Reduced Model: $\log(\hat{\lambda}) = \beta_0$
+
+-   Full Model: $\log(\hat{\lambda}) = \beta_0 + \beta_1 Hi + \beta_2 Lo + \beta_3 Precip$
+
+    $H_0: \beta_j = 1,2,3. H_a: \exists \beta_j \neq 0: j = 1,2,3$
+
 ```{r}
+chi2 <- summary(mod_pois)$null - summary(mod_pois)$deviance
+pchisq(chi2,3,lower.tail = FALSE)
 ```
+
+$X^2 = 70198.64, p \approx 0$ , therefore we reject $H_0$ and conclude that a Poisson regression model for the number of bikes per day on the brooklyn bridge by high and low daily temperature and precipitation is statistically significant.
+
+Note the procedure for partial significance tests is the same as logistic regression, just interpreted differently for a Poisson model!
 
 ## Checking assumptions of linearity for GLMs
 
