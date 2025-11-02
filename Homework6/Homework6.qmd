@@ -33,7 +33,7 @@ Consider the awards.csv dataset in the Data folder that contains the following v
 
 a.  State the regression line for the distribution's natural parameter in the context of the problem.
 
-    $log(\hat{awards}) = \beta_0 + \beta_1 General + \beta_2 Vocational + \beta3 Math$
+    $log(\hat{\lambda}) = \beta_0 + \beta_1 prog_{general} + \beta_2 prog_{vocational} + \beta3 math$
 
 ```{r}
 # using poisson bc awards is a count variable 
@@ -51,20 +51,51 @@ c.  Calculate and interpret a 95% profile confidence interval for the parameter 
 confint(mod, 'progVocational')
 ```
 
-We are 95% confident that if the program a student is in is
+We are 95% confident that if the program a student is in the Vocational program, the expected increase in the number of awards for the student changes by a factor of exp(-1.3905775) = 0.2489315 and exp(-0.1261624) = 0.8814717, holding math constant.
 
 d.  Perform a formal hypothesis test to determine if your model in (a) is statistically significant. Assume $\alpha = 0.05$.
 
+    Reduced Model: $log(\hat{\lambda}) = \beta_0$
+
+    Full Model: $log(\hat{\lambda}) = \beta_0 = \beta_1 prog_{general} + \beta_2 prog_{vocational} + \beta_3 math$
+
+    $H_0 : B_j = 0 : j = 1, 2, 3, H_a : \exists B_j \neq 0 : j = 1, 2, 3$
+
+    $X^2 = 98.223, p = 3.747 \times 10^{-21} < \alpha = 0.05$ , we reject $H_0$ and conclude that a poisson regression model
+
+    predicting the expected number of awards a student has by the type of program a student is in and their math proficiency score is statistically significant.
+
 ```{r}
+summary(mod)
+chi2 <- mod$null.deviance - mod$deviance
+df   <- mod$df.null - mod$df.residual
+pchisq(chi2, df, lower.tail = FALSE)
+chi2
 ```
 
 e.  Perform a formal hypothesis test to determine if adding interaction terms between program and math score is statistically significant. Assume $\alpha = 0.05$.
 
+    Reduced Model:
+
+    $log(\hat{\lambda}) = \beta_0 + \beta_1 prog_{general} + \beta_2 prog_{vocational} + \beta_3 math$
+
+    Full Model: $log(\hat{\lambda}) = \beta_0 + \beta_1 prog_{general} + \beta_2 prog_{vocational} + \beta_3 math + \beta_4 \text{prog-general x math} + \beta_5 \text{prog-vocational x math}$
+
+    $H_0 : B_j = 0 : j = 4 , 5, H_a : \exists B_j \neq 0 : j = 4 , 5$
+
+    $p = 0.8403 > \alpha = 0.05$ , we fail to reject the null hypothesis and conclude adding interaction terms between program and math score is not statistically significant in our model predicting expected number of awards by program and math proficiency.
+
 ```{r}
+mod_int <- glm(num_awards ~ prog + math + prog:math, data = award, family = poisson)
+anova(mod_int, mod)
 ```
 
 f.  Determine if the model you chose in (e) is a good fit for the data.
 
 ```{r}
-
+plot(mod,1)
+plot(mod,2)
+library(lmtest)
+bptest(mod)
+ks.test(rstandard(mod), 'pnorm')
 ```
