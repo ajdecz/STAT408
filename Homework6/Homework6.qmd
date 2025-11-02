@@ -1,0 +1,70 @@
+---
+title: "Homework 6"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+For the problems in which calculations are needed, please include your R code with your answers, otherwise you will not be given full credit. Please upload your assignment by Wednesday, November 6 at 6 pm in a pdf/html/word file to Sakai.
+
+Consider the awards.csv dataset in the Data folder that contains the following variables:
+
+-   ID: Student identification
+
+-   num_awards: Number of Awards the student has won
+
+-   prog: The type of program the student is enrolled in
+
+-   math: Their math proficiency score
+
+    ```{r}
+    library(tidyverse)
+    award <- read.csv('Data/awards.csv')
+    ```
+
+1.  We wish to create a regression model to predict the number of awards a student has won by their program and math efficiency.
+
+<!-- -->
+
+a.  State the regression line for the distribution's natural parameter in the context of the problem.
+
+    $log(\hat{awards}) = \beta_0 + \beta_1 General + \beta_2 Vocational + \beta3 Math$
+
+```{r}
+# using poisson bc awards is a count variable 
+mod <- glm(num_awards ~ prog + math, family = poisson, data = award)
+summary(mod)
+```
+
+b.  Interpret the parameter associated with math in the context of the problem.
+
+    0.07015: As the math proficiency score of a student increases by one, the expected increase in the number of awards for the student changes by a factor of exp(0.07015) = 1.073, holding program constant.
+
+c.  Calculate and interpret a 95% profile confidence interval for the parameter associated with the vocational program in the context of the problem.
+
+```{r}
+confint(mod, 'progVocational')
+```
+
+We are 95% confident that if the program a student is in is
+
+d.  Perform a formal hypothesis test to determine if your model in (a) is statistically significant. Assume $\alpha = 0.05$.
+
+```{r}
+```
+
+e.  Perform a formal hypothesis test to determine if adding interaction terms between program and math score is statistically significant. Assume $\alpha = 0.05$.
+
+```{r}
+```
+
+f.  Determine if the model you chose in (e) is a good fit for the data.
+
+```{r}
+
+```

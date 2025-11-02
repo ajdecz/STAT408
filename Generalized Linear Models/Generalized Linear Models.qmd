@@ -163,7 +163,7 @@ beta + c(-1,1) * crit * sqrt(var_beta)
 confint(mod_glm, "Age")
 ```
 
-We are 95% confident that as age increases by 1 year, the odds of surviving the titanic change by a factor between
+We are 95% confident that as age increases by 1 year, the odds of surviving the titanic change by a factor between exp(-0.05229) = 0.9491 and exp(-0.02223) = 0.9780, holding sex and passenger class constant.
 
 ## Hypothesis Testing for GLMs
 
@@ -193,6 +193,21 @@ In the summary of a glm, the output gives us two deviance values:
 
 Perform a formal hypothesis test to determine if our overall logistic regression model is statistically significant.
 
+-   reduced model: $logit(\hat{p}) = \beta_0$
+
+-   full model: $logit(\hat{p}) = \beta_0 + \beta_1 Age + \beta_2 SexMale + \beta_3 Pclass2 + \beta_4 Pclass3$
+
+-   $H_0 : \beta_j = 0 : j = 1-4, H_a : \exists \beta_j \neq 0 : j = 1-4$
+
+    ```{r}
+    summary(mod_glm)
+    chi2 <- summary(mod_glm)$null - summary(mod_glm)$deviance #null deviance - residual deviance 
+    chi2
+    pchisq(chi2,4,lower.tail = FALSE) #dfM = dfT - dfE = 713 - 709
+    ```
+
+$X^2 = 317.23, p = 2.074 x 10^{-67}$ , we reject $H_0$ and conclude that a logistic regression model predicting survival rates of the Titanic by age, sex, and passenger class is statistically significant.
+
 Perform a formal hypothesis test to determine if adding passenger class to a logistic regression model that already includes age and gender is statistically significant.
 
 Reduced Model: $\text{logit}(\hat{p}) = \beta_0 + \beta_1 Age + \beta_2 SexMale$
@@ -209,7 +224,7 @@ anova(mod_red_glm, mod_glm)
 
 -   $X^2 = 102.67$ on 2 df, $p < 2.22 x 10^{-16}$ , so we reject the null hypothesis and conclude that adding passenger class to a logistic regression model predicting survival of the titanic with age and sex already included is statistically significant.
 
--   For partial hypothesis tests, $\chi^2 = \text{Residual Deviance for Reduced}$
+-   For partial hypothesis tests, $X^2$ = Residual Deviance for Reduced Model - Residual Deviance for the Full Model
 
 -   This is similar to the numerator sums of squares for partial F tests being the sse_reduced model - the sse_full
 

@@ -1,0 +1,278 @@
+---
+title: "Spline Regression"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+Before we discuss splines I would like to talk about boxcox.
+
+#### Box-Cox Transformations: A parametric transformation to turn non normal data into normal data. 
+
+For strictly positive data, a Box-Cox transformation is
+
+$f(x) = \frac{x^\lambda - 1}{\lambda}$ , for $\lambda \neq 0$ and $f(x) = \log (x)$ for $\lambda = 0$
+
+### Example 
+
+Perform a box cox transformation analysis for the boston housing dataset for a model predicting median home values by crime rate
+
+```{r}
+library(MASS)
+mod <- lm(medv ~ crim, Boston)
+bc <- boxcox(mod)
+bc$x[which.max(bc$y)] #extracts the optimal lambda based on the box cox transformation. 
+# 0.1010101 #if this value is within the plot then a box cox transformation is appropriate.  
+```
+
+-   $\lambda = -0.10101$ is the optimal value of $\lambda$
+
+-   however, 0 is inside of the 95% CI, so it is a reasonable choice.
+
+-   Now back to splines...
+
+Consider the dataset lidar. This dataset is useful for helping to determine the amount of light received from two different laser sources by the amount of distance travelled before returning back to its source.
+
+```{r}
+library(tidyverse)
+lidar <- read.csv("Data/lidar.csv")
+ggplot(lidar, aes(x = range, y = logratio))+
+  geom_point() +
+  geom_smooth(method = 'lm', formula = y ~ x, se=FALSE, color = 'pink')
+```
+
+-   Clearly, a straight line model is not a good fit.
+
+-   What about a polynomial model?
+
+```{r}
+ggplot(lidar, aes(x = range, y = logratio))+
+  geom_point() +
+  geom_smooth(method = 'lm', formula = y ~ poly(x,2), se=FALSE, color = 'pink')
+```
+
+this is better but all of the points between 500 and 575 for range are underestimated (points are above our prediction curve)
+
+A lot of the points between ranges 400-450 are all overestimated (points are below our prediction curve)
+
+you can try multiple polynomials, but there are methods that get just as good of predictions with a lower number of parameters!
+
+**Spline Regression**: A regression technique where the response variable is fit to a singular numeric explanatory variable (can be extended to multiple numeric explanatory variables) with piecewise polynomials set at predetermined points in the regression.
+
+One of the more common spline techniques we will employ is a method of **B-spline** regression where the regression curve is fit using piecewise polynomials using Bezier curves as a basis function.
+
+B-splines have two important parameters that are set *prior to* performing our data analysis.
+
+-   Degree ($d$): Highest term of the piecewise polynomials to be used (helps to control the smoothness of the regression curve)
+
+-   Knots ($K_n$): Internal breakpoints where the piecewise polynomials will be fit. The formula already places breakpoint ends at the minimum and maximum of $X$.
+
+Let's see how B-spline bases are calculated with a generic $X$ variables with values exclusively between 0 and 1.
+
+```{r, echo=FALSE}
+library(splines2)
+# Define a sequence of x values
+x <- seq(0, 1, length.out = 100)
+
+# Generate B-spline basis matrix
+degree <- 0 # Degree of the spline
+num_knots <- 3  # Number of internal knots
+knots <- seq(0.25, 0.75, length.out = num_knots)
+bspline_basis <- bSpline(x, knots = knots, degree = degree, intercept = TRUE)
+
+# Convert the basis matrix to a data frame for ggplot
+basis_df <- as.data.frame(bspline_basis)
+basis_df$x <- x
+
+# Melt the data frame for ggplot
+library(reshape2)
+basis_long <- melt(basis_df, id.vars = "x", variable.name = "Basis", value.name = "Value")
+
+# Plot the B-spline basis functions
+ggplot(basis_long, aes(x = x, y = Value, color = Basis)) +
+  geom_line(size = 1) +
+  labs(title = "B-spline Basis Functions -- Degree = 0 Equal Knots", x = "x", y = "Basis Value") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+-   If degree = 0, we are essentially turning a numeric variable into a categorical variable where the indicators are based on where the numeric variable falls within the knots.
+
+-   Every time we add to the degree, we add an additional covariate in our regression analysis to control for an additional layer of smoothness
+
+    ```{r, echo = False}
+    x <- seq(0, 1, length.out = 100)
+
+    # Generate B-spline basis matrix
+    degree <- 1 # Degree of the spline
+    num_knots <- 3  # Number of internal knots
+    knots <- seq(0.25, 0.75, length.out = num_knots)
+    bspline_basis <- bSpline(x, knots = knots, degree = degree, intercept = TRUE)
+
+    # Convert the basis matrix to a data frame for ggplot
+    basis_df <- as.data.frame(bspline_basis)
+    basis_df$x <- x
+
+    # Melt the data frame for ggplot
+    library(reshape2)
+    basis_long <- melt(basis_df, id.vars = "x", variable.name = "Basis", value.name = "Value")
+
+    # Plot the B-spline basis functions
+    ggplot(basis_long, aes(x = x, y = Value, color = Basis)) +
+      geom_line(size = 1) +
+      labs(title = "B-spline Basis Functions -- Degree = 1 Equal Knots", x = "x", y = "Basis Value") +
+      theme_minimal() +
+      theme(legend.position = "none")
+    ```
+
+-   We also need to add a covariate for every additional knot in our B-spline basis
+
+    ```{r, echo = False}
+    x <- seq(0, 1, length.out = 100)
+
+    # Generate B-spline basis matrix
+    degree <- 1 # Degree of the spline
+    num_knots <- 5  # Number of internal knots
+    knots <- c(0.1,0.3,0.8,0.9,0.95)
+    bspline_basis <- bSpline(x, knots = knots, degree = degree, intercept = TRUE)
+
+    # Convert the basis matrix to a data frame for ggplot
+    basis_df <- as.data.frame(bspline_basis)
+    basis_df$x <- x
+
+    # Melt the data frame for ggplot
+    library(reshape2)
+    basis_long <- melt(basis_df, id.vars = "x", variable.name = "Basis", value.name = "Value")
+
+    # Plot the B-spline basis functions
+    ggplot(basis_long, aes(x = x, y = Value, color = Basis)) +
+      geom_line(size = 1) +
+      labs(title = "B-spline Basis Functions -- Degree = 1 Equal Knots", x = "x", y = "Basis Value") +
+      theme_minimal() +
+      theme(legend.position = "none")
+    ```
+
+The degree changes what the shape of the curves inside look like.
+
+Each curve represents the value of a new covariate to be used in our regression estimation. This creates $B(x_i)$, a vector of covariates created from the value of the explanatory variable $x_i$ with the specified degree and knots. $B$ is a function that maps $x_i$ to a simplex vector ( $\{x_1,\cdots,x_n: x_i \geq 0, \sum_{j=1}^n x_j = 1\}$)
+
+Therefore, our regression equation looks like $$\boldsymbol{y} = B(\boldsymbol{X})\boldsymbol{\beta} + \epsilon$$ where $B(\boldsymbol{X})$ is an $n \times (d + |K_n|)$ matrix of B-spline bases. Therefore, all of the things we have conducted for inference in ordinary and weighted least squares regression are still available for us in B spline regression!
+
+$$\hat{\boldsymbol{\beta}} = (B'(\boldsymbol{X})B(\boldsymbol{X}))^{-1}B'(\boldsymbol{X})\boldsymbol{y}$$ $$\hat{\sigma}^2 = \frac{1}{n - k}(\boldsymbol{y} - B(\boldsymbol{X})\hat{\boldsymbol{\beta}})'(\boldsymbol{y} - B(\boldsymbol{X})\hat{\boldsymbol{\beta}})$$ where $k = d + |K_n| + 1$
+
+$$\hat{\text{Var}}(\hat{\boldsymbol{\beta}}) = \hat{\sigma}^2(B'(\boldsymbol{X})B(\boldsymbol{X}))^{-1}$$
+
+$$\hat{\mu}_{Y|X_0} = B(X_0) \hat{\boldsymbol{\beta}}$$
+
+$$\hat{\text{Var}}(\hat{\mu}_{Y|X_0}) = B(X_0) \hat{\text{Var}}(\hat{\boldsymbol{\beta}})B'(X_0)$$
+
+$$\text{100(1-}\alpha\text{)% confidence interval for }{\mu}_{Y|X_0}: \hat{\mu}_{Y|X_0} \pm t^*_{1-\frac{\alpha}{2},n-k} \sqrt{\hat{\text{Var}}(\hat{\mu}_{Y|X_0})}$$ $$\text{100(1-}\alpha\text{)% prediction interval for }{Y}_{X_0}: \hat{\mu}_{Y|X_0} \pm t^*_{1-\frac{\alpha}{2},n-k} \sqrt{\hat{\sigma}^2 + \hat{\text{Var}}(\hat{\mu}_{Y|X_0})}$$
+
+Note: while we can conduct all of the above intervals and analysis, using Bspline regression means we are not really interested in inference. We are simply trying to make the best predictions for the response for the given data.
+
+Consider a regression on the lidar dataset with knots at each of the three quartiles of the dataset (to ensure group of piecewise polynomials has a roughly equal set of data points.)
+
+### Degree = 0
+
+```{r}
+library(splines2)
+kn <- quantile(lidar$range,c(0.25,0.5,0.75))
+# Calculate the B-spline basis functions
+X0 <- bSpline(lidar$range,degree=0,knots=kn,intercept=TRUE)
+# I want to use X as my model matrix, therefore, I do not want R to insert an intercept by default. The leading 0 prevents this.
+mod_deg0 <- lm(logratio ~ 0 + X0,lidar)
+ggplot(data = lidar,aes(x=range,y=logratio)) + 
+  geom_point() + 
+  geom_line(aes(x=range,y=fitted(mod_deg0)),colour='red') +
+  # Create dashed vertical lines at each of the knots
+  geom_vline(aes(xintercept = kn[1]),lty=2) +
+  geom_vline(aes(xintercept = kn[2]),lty=2) +
+  geom_vline(aes(xintercept = kn[3]),lty=2)
+```
+
+A Bspline basis with degree of 0 converts the numerical explanatory variable into a categorical variable separated by the knots!
+
+### Degree = 1
+
+```{r}
+```
+
+### Degree = 2
+
+```{r}
+```
+
+### Degree = 3
+
+```{r}
+```
+
+-   Again, all of the B-spline basis function are calculated using a specific algorithm based on the specified knots, degree, and (possibly Boundary knots)
+
+-   If we want to extrapolate outside of the minimum and maximum of the dataset, then set Boundary.knots to whatever you want to extrapolate to.
+
+What we know:
+
+-   If $d = 0$, Bspline regression fits a step function at the knots
+
+-   If $d = 1$, Bspline regression fits a continuous function
+
+-   If $d \geq 2$, Bspline regression fits a continuous and $(d-1)^{th}$ differentiable function
+
+-   In most cases, never need to go beyond $d = 3$ to avoid overfitting.
+
+Note: Can specify a specific degrees of freedom (df) instead of looking for the specific knots!
+
+-   This way you are guaranteed to have a continuous and 2nd order differentiable regression function while reducing the possibility of overfitting.
+
+```{r}
+
+```
+
+## Example
+
+Create a B-spline regression model for the lidar dataset with $d = 3$ and $df = 7$
+
+```{r}
+Bs <- bSpline(lidar$range, degree = 3, df = 7, intercept = TRUE)
+mod <- lm(logratio ~ 0 + Bs, lidar)
+summary(mod)
+
+```
+
+Because we are using bsplines we are now explaining 96% of the variation in logratio by range
+
+The model matrix was calculated separately from the data frame, so we have to calculate the interval by hand
+
+```{r}
+```
+
+-   Calculate and interpret a 95% confidence interval for the logratio of light received when the range is 402.
+
+```{r}
+# we can still use the predict function as long as the range = 402 is in our observations. 
+# you can make predictions for observations not in the data if you can make their B-spline bases correctly 
+#because observation 9 in our data is range = 402, we will extract only that row
+predict(mod, interval = 'confidence')[9, ]
+```
+
+-   we are 95% confident that the logratio of light when range is 402 is between -0.0808 and -0.0119.
+
+-   While BSpline regression models help to relax the assumption of linearity between $X$ and $Y$, because we will have normally distributed errors, we still need to check the assumptions of homoscedasticity and normality. Determine if the assumptions of homoscedasticity and normality are violated. If they are violated, suggest a method to fix this issue.
+
+```{r}
+plot(mod,1)
+plot(mod,2)
+library(lmtest)
+bptest(mod)
+ks.test(rstandard(mod), 'pnorm')
+```
+
+Based on these results the assumption of homoscedasticity is violated, but the assumption of normality is not violated. I would suggest to fix this using a weighted least squares approach due to the horn shape in the residual plot.
+
+But remember we are only interested in making the best predictions, these assumptions dont matter a lot.
