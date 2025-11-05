@@ -92,6 +92,8 @@ anova(mod_int, mod)
 
 f.  Determine if the model you chose in (e) is a good fit for the data.
 
+    For homoscedasticity, our residual plot looks pretty bad so it is clearly violated, and for our BP test $p = 3.89e-05$ which violates the assumption, therefore we can conclude homoscedasticity is violated. For normality our residual plot doesn't deviate too far from the line but the results are not well distributed, to confirm the violation of normality I ran a KS test, and $p =2.189e-15$ , which proves our assumption of normality is violated. Therefore I will conclude that this model that was chosen is not a good fit for the data.
+
 ```{r}
 plot(mod,1)
 plot(mod,2)

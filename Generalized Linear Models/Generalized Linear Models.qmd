@@ -285,7 +285,7 @@ $\log(\hat{\lambda}) = 6.416 + 0.02878 Hi - 0.008046 Lo - 2.767 Precip$
 
 -   Interpret the parameter estimate associated with low temperature in the context of the problem.
 
-    -   \- 0.08046, as the low daily temperature increases by one degree Fahrenheit, the average number of bikers on the Brooklyn bridge changes by a factor of exp(-0.008046) = 0.9920, holding all other variables constant.
+    -   \- 0.08046, as the low daily temperature increases by one degree Fahrenheit, the average number of bikers on the Brooklyn bridge decreases by a factor of exp(-0.008046) = 0.9920, holding all other variables constant.
 
 -   Interpret the parameter estimate associated with precipitation in the context of the problem.
 
