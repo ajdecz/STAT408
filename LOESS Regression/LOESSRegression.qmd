@@ -1,0 +1,171 @@
+---
+title: "Introduction to LOESS Regression"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+**Locally Estimated Scatterplot Smoothing (LOESS)**: a non-parametric regression method. It is useful when the relationship between the predictor and the response variable is complex and cannot be well-modeled by traditional linear or polynomial regression.
+
+Don't need to check for violations bc we are not assuming anything
+
+## Difference between B-spline and LOESS regression.
+
+-   B-splines: We fit a non-linear model using ordinary (or weighted) least squares to the entire dataset. This is called a *global* regression model
+-   LOESS: We are fitting a weighted polynomial model within a neighborhood **only** around a certain point $(x_i,y_i)$. This is called a *local* regression model.
+
+## Procedure for LOESS regression
+
+**Smoothing Parameter (Span)** ($\alpha < 1$): The parameter that controls the degree of smoothing to fit a localized regression model for $(x_i,y_i)$
+
+-   Only $\alpha$ proportion of the points will have any weight for which we fit our localized regression model, and these are the closest values in distance to $x_i$
+
+**Weights** ($w_{ij}$): The weight associated data point $(x_j,y_j)$ for fitting a localized regression model for data point $(x_i,y_i)$.
+
+-   let $d = \max |x_j - x_i|$ which is the largest distance between $x_i$ and the $\alpha$ proportion of points used in our LOESS regression
+
+-   We typically use a tricube weight function to calculate the weights: $$w_{ij} = \max\left(\left(1 - \left(\frac{|x_j - x_i|}{d}\right)^3\right)^3,0\right)$$
+
+Let's see what this weight function looks like around $x = 0$
+
+this means we want to fit a LOESS model at $x=0$
+
+```{r}
+library(tidyverse)
+x <- seq(-3,3,0.01)
+
+d1 <- pmax((1 - (abs(x)/1)^3)^3,0)
+d2 <- pmax((1 - (abs(x)/2)^3)^3,0)
+d3 <- pmax((1 - (abs(x)/3)^3)^3,0)
+
+ggplot() +
+  geom_line(aes(x=x,y =d1))+
+  geom_line(aes(x=x,y=d2),colour = 'green')+
+  geom_line(aes(x=x,y=d3),colour = 'red')
+```
+
+**Local Regression**: After weighting is performed, localized regression for $(x_i,y_i)$ is fit using by minimizing the following sums of squares
+
+$$\sum_{j = 1}^n w_{ij}(y_j - \sum_{k=0}^p\beta_k (x_j - x_i)^k)^2$$ where $p$ is the largest polynomial to be used to fit the regression. In R, the default is a degree of 2.
+
+-   essentially we are repetitively performing least squares estimation for every observed x
+
+<!-- -->
+
+-   After performing a least squares regression analysis on this subset of data, we can obtain $$\hat{y}_i = \hat{\beta}_0$$
+
+specifically for observed points in the data.
+
+-   For $x_i$ that are in the data, we perform least squares regression with explanatory variables centered at $x_i$ , which means our estimate is simply the intercept
+
+-   For $x_i$ that are unobserved, we do need to perform interpolation.
+
+<!-- -->
+
+-   After obtaining $\{\hat{y}_i:i = 1,\cdots,n\}$, interpolation is conducted using, wait for it, **splines**!
+
+## Advantages and Limitations
+
+### Advantages
+
+-   **Flexible**: LOESS can model complex, non-linear relationships. Also only requires the specification of the span versus the degree and knots of B-splines
+-   **Intuitive**: It allows smooth visualizations, which can make trends easier to interpret.
+-   **Robust to Assumptions**: The assumptions of homoscedasticity and normality need no longer apply
+
+### Limitations
+
+-   **Computationally Intensive**: LOESS is not suited for large datasets due to computational cost.
+-   **Risk of Overfitting**: If the span is too small, the model may overfit.
+
+# Implementing LOESS in R
+
+Let's start by simulating a dataset with a non-linear trend and apply LOESS to it.
+
+```{r}
+# Load necessary packages
+library(ggplot2)
+
+# Generate synthetic data with a non-linear trend
+set.seed(123)
+x <- seq(0, 10, length.out = 100)
+y <- sin(x) + rnorm(100, sd = 0.3)
+data <- data.frame(x = x, y = y)
+
+# Plot the data
+ggplot(data = data, aes(x=x,y=y))+
+  geom_point()
+# Apply loess regression with a span of 0.3
+mod <- loess(y ~ x, data, span = 0.3)
+summary(mod)
+predict(mod)
+# We can also get predictions along with their associated standard errors
+predict(mod, se = TRUE)
+# Let's visually see how different spans fit the data
+# geom_smooth in ggplot can automatically create a loess curve for you
+ggplot(data, aes(x=x,y=y))+
+  geom_point()+
+  geom_smooth(span = 0.05, se = FALSE, colour = 'red')+
+  geom_smooth(span = 0.3, se = FALSE, colour = 'black')+
+  geom_smooth(span = 0.75, se = FALSE, colour = 'green')+
+  geom_smooth(span = 0.95, se = FALSE, colour = 'blue')
+```
+
+What does each span tell us?
+
+-   spans close to 0 provide very jagged curves with no trends to observe
+
+-   spans close to 1 provide smoother curves getting close to a polynomial regression with the specified degree in loess.
+
+The predict function with SE = TRUE gives us a list with
+
+-   fit: the predicted values
+
+-   se.fit: associated standard errors
+
+-   residual.scale: residual standard error
+
+-   df: equivalent error degrees of freedom
+
+We can calculate confidence intervals at each point:
+
+$\hat{y} \pm z_{1-\frac{\alpha}{2}}^* se(\hat{y})$
+
+a good general idea for LOESS is to minimize the residual standard error. While maintaining a relatively smooth curve.
+
+# Let's see what the LOESS regression summary looks like
+
+-   **Equivalent Number of Parameters**: Serves as an approximation of the model's flexibility (akin to the model degrees of freedom for traditional regression)
+
+-   **Residual Standard Error**: Estimate of the typical deviation of the observed values from the fitted LOESS curve
+
+-   **Trace of smoother matrix**: The degree to which the LOESS fit adjusts to the data. Larger traces mean a more adaptable model that closely follows the data's structure.
+
+Because this is a localized regression, we cannot get any model parameters or standard errors
+
+-   As $\alpha \rightarrow 1$, we are approaching a weighted polynomial regression model with the specified degree
+
+-   As $\alpha \rightarrow 0$, we are fitting a model to just a single point, and cannot make any interpretations of the overall data structure
+
+```{r}
+```
+
+-   Suggestion: choose a span that minimizes residual standard error and/or maximimizes the trace of the smoother matrix
+
+### Example
+
+Fit a LOESS regression model to the lidar dataset and compare it to the model fit of the B-spline regression model from the previous lecture notes.
+
+```{r}
+lidar <- read.csv('Data/lidar.csv')
+#recall the function is loess(y ~ x, data, span = span)
+lidar_lm <- loess(range ~ logratio, lidar, span = 0.3)
+# we can mathematically look at different spans 
+spans <- seq(0.05,1,0.05)
+
+
+```

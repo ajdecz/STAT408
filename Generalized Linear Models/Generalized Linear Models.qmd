@@ -338,7 +338,7 @@ We can plot the fitted values from our GLM with the Pearson residuals, and if th
 
 Check if the Poisson regression model provides a good fit for the data
 
-```{r}
+```{r}d}
 ```
 
 You can also check for influential observations using Cook's distance.
