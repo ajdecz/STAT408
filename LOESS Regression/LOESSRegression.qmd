@@ -151,7 +151,7 @@ Because this is a localized regression, we cannot get any model parameters or st
 
 -   As $\alpha \rightarrow 0$, we are fitting a model to just a single point, and cannot make any interpretations of the overall data structure
 
-```{r}
+```{r} #need this code from the html, that would be cool. d}
 ```
 
 -   Suggestion: choose a span that minimizes residual standard error and/or maximimizes the trace of the smoother matrix
@@ -168,4 +168,77 @@ lidar_lm <- loess(range ~ logratio, lidar, span = 0.3)
 spans <- seq(0.05,1,0.05)
 
 
+```
+
+#### MISSED SOMETHING HERE CHECK HTML FOR NEW START
+
+Note: as the span gets smaller, the trace of the smoother matrix will always increase and the mean squared error will always decrease
+
+we want to choose a span that provides good estimates of the mean squared error to estimate future data
+
+## Model Validation Techniques
+
+-   model validation is the task of determining if a chosen statistical model is valid or not
+
+    -   note: we have done similar techniques, of model validation for linear regression by the residual plots and the qq plots.
+
+-   for loess regression and other nonlinear techniques, we want to do model validation by seeing how well our model does at predicting data points it has not seen.
+
+-   split the data into two different types,
+
+    -   training data: subset of our dataset for which we will fit our model.
+
+    -   test data: subset of our dataset for which we will perform model validation
+
+-   This type of model validation is called cross-validation
+
+-   typically we will randomly choose points to be in our training and test datasets
+
+## K Fold Cross Validation
+
+Step-by-Step procedure
+
+1.  randomly place the data observations into K roughly equal sized groups
+2.  For k =1 to K
+    1.  Fit the model for all observations except those in group k
+    2.  Calculate a validation value such as the mean squared prediction error for the values in group k\\
+
+$MSPE_k = \sum_{obs \in k} (y_i - \hat{y}_{ik})^2$
+
+-   $\hat{y_{ik}}$ is the prediction for observation i using the model from the training set excluding group k.
+
+### Example 
+
+Determine the optimal span for the lidar dataset using LOESS regression via 10-fold cross validation
+
+```{r}
+# Candidate spans
+spans <- seq(0.1,1,by=0.05)
+
+# K-Fold CV
+K <- 10
+folds <- sample(rep(1:K, length.out = nrow(lidar)))
+
+cv_errors <- numeric(length(spans)) #vector that stores errors that we will use to compare the different spans 
+
+for (i in seq_along(spans)){
+  s <- spans[i]
+  mspe <- c()
+  
+  for (k in 1:K){
+    train <- lidar[folds != k,]
+    test <- lidar[folds == k,]
+    
+    fit <- loess(logratio ~ range,train,span=s)
+    preds <- predict(fit,newdata=test)
+    
+    mspe[k] <- mean((test$logratio - preds)^2, na.rm = TRUE)
+  }
+  cv_errors[i] <- mean(mspe)
+} #iteratively sees if this minimizes our prediction error
+
+cv_errors
+plot(spans,cv_errors,type = 'b') 
+
+spans[which.min(cv_errors)]
 ```

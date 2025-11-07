@@ -1,0 +1,67 @@
+---
+title: "Project Work"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+let's see if there are any predictors for market value in FIFA22
+```{r}
+library(tidyverse)
+
+fifa <- read.csv('FIFA22_official_data.csv')
+head(fifa)
+
+```
+
+
+lets look at some columns 
+```{r}
+# ideas for things to predict market Value... Age, Nationality, Overall, Club, Preferred.Foot, Skill.Moves, Body.Type, Height, Wright, Crossing, Finishing, HeadingAccuracy, ShortPassing, Volleys, Dribbling, Curve, FKAccuracy, LongPassing, BallControl, Acceleration, SprintSpeed, Agility, Reactions, Balance, ShotPower, Jumping, Stamina, Strength, LongShots, Aggression, Interceptions, Positioning, Vision, Penalties, Composure, StandingTackle, SlidingTackle, DefensiveAwareness 
+
+#removed club and nationality for fun reasons and body type
+
+fifa_new <- fifa %>% 
+  select(Value, Age, Overall, Preferred.Foot, Skill.Moves, Height, Weight, Crossing, Finishing, HeadingAccuracy, ShortPassing, Volleys, Dribbling, Curve, FKAccuracy, LongPassing, BallControl, Acceleration, SprintSpeed, Agility, Reactions, Balance, ShotPower, Jumping, Stamina, Strength, LongShots, Aggression, Interceptions, Positioning, Vision, Penalties, Composure, StandingTackle, SlidingTackle, DefensiveAwareness
+  )
+```
+Let's clean some data first 
+```{r}
+fifa_clean <- fifa_new %>%
+  mutate(
+    # --- Clean Value ---
+    Value = gsub("€", "", Value),
+    Value = case_when(
+      grepl("M", Value) ~ as.numeric(gsub("M", "", Value)) * 1e6,
+      grepl("K", Value) ~ as.numeric(gsub("K", "", Value)) * 1e3,
+      TRUE ~ as.numeric(Value)
+    ),
+    
+    # --- Clean Height (remove "cm" and convert to numeric) ---
+    Height = as.numeric(gsub("cm", "", Height)),
+    
+    # --- Clean Weight (remove "kg" and convert to numeric) ---
+    Weight = as.numeric(gsub("kg", "", Weight))
+  ) %>%
+  # Remove rows with missing or infinite values
+  filter(!is.na(Value), is.finite(Value)) %>%
+  na.omit()
+```
+now lets see if it runs the model hahahah it runs 
+```{r}
+mod <- lm(Value ~ ., fifa_clean)
+
+```
+
+```{r}
+summary(mod)
+plot(mod)
+
+#weights or boxcox 
+```
+

@@ -12,13 +12,13 @@ execute:
 
 Before we discuss splines I would like to talk about boxcox.
 
-#### Box-Cox Transformations: A parametric transformation to turn non normal data into normal data. 
+#### Box-Cox Transformations: A parametric transformation to turn non normal data into normal data.
 
 For strictly positive data, a Box-Cox transformation is
 
 $f(x) = \frac{x^\lambda - 1}{\lambda}$ , for $\lambda \neq 0$ and $f(x) = \log (x)$ for $\lambda = 0$
 
-### Example 
+### Example
 
 Perform a box cox transformation analysis for the boston housing dataset for a model predicting median home values by crime rate
 
@@ -231,7 +231,7 @@ Note: Can specify a specific degrees of freedom (df) instead of looking for the 
 -   This way you are guaranteed to have a continuous and 2nd order differentiable regression function while reducing the possibility of overfitting.
 
 ```{r}
-
+# need to fill in from the html for splines
 ```
 
 ## Example

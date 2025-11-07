@@ -1,0 +1,313 @@
+---
+title: "Review and Basics of R"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+## Important Definitions
+
+-   **Statistics**: the science and art of collecting, analyzing, and drawing conclusions from data.
+
+-   **Population of Interest**: Group of individuals we wish to know more information about
+
+-   **Sample**: Subset of the population of interest from which we can obtain information
+
+-   **Individuals**: the subjects/objects of the population of interest; can be people, but also business firms, common stocks, or any other object we want to study.
+
+-   **Variable**: any characteristic of an individual that we can measure and observe.
+
+## Uploading a dataset to R
+
+```{r}
+library(tidyverse)
+airfares <- read.csv("~/stat408/Review and Basics of R/Data/airfares.csv")
+```
+
+## Parameters and Statistics
+
+-   **Population Parameter**: A numeric value that describes the characteristics of an entire population
+
+-   **Sample Statistic**: A numeric value that describes the characteristics of the observed data from a sample
+
+Recall, we use **sample statistics** to make inference about **population parameters**.
+
+Some important sample statistics:
+
+-   **Sample Mean**: $\bar{X} = \frac{1}{n}\sum_{i=1}^n X_i$
+-   **Sample Variance**: $S_x^2 = \frac{1}{n - 1}\sum_{i=1}^n (X_i - \bar{X})^2$
+-   **Sample Standard Deviation**: $S_x = \sqrt{S_x^2}$
+
+To add another chunk of code, use Ctrl-alt-I for PCs, Cmd-option-I for Macs.
+
+```{r}
+
+```
+
+## Random Variables and Distributions
+
+-   **Random Variable** denote a variable whose observed values may be considered outcomes of a stochastic or random experiment. Random variables are typically denoted by a capital letter $X$, $Y$, etc., while observations are typically denoted by lowercase letters $x$, $y$, etc.
+
+-   Note: When a dollar sign is outside of R code in the main text, this is LaTeX math notation
+
+Recall, a data frame contains **observations** from multiple **random variables** from a particular **sample** from the **population of interest**.
+
+## Normal Distribution
+
+If a random variable $X$ is normally distributed, this is denoted as $$X \sim \mathcal{N}(\mu_x,\sigma_x^2)$$ where $\mu_x$ is the mean of $X$ and $\sigma_x$ is the standard deviation of $X$.
+
+### Example
+
+Suppose $X \sim \mathcal{N}(2,4)$.
+
+### a
+
+What is $Pr(X > 3.5)$?
+
+```{r, include = TRUE}
+1 - pnorm(3.5,2,2)
+pnorm(3.5,2,2,lower.tail = FALSE)
+```
+
+### b
+
+What is the $0.35$ quantile/$35^{th}$ percentile of $X$?
+
+```{r, include = TRUE}
+qnorm(0.35,2,2)
+```
+
+## Central Limit Theorem
+
+Define $\bar{X}$ as the random variable associated with the mean of a sample $\bar{x}$.
+
+If a random variable $X$ is normally distributed with mean $\mu_x$ and standard deviation $\sigma_x$ OR the sample size $n_x$ is sufficiently large ($n_x > 30$), then the **sampling distribution of the sample mean**, $$\bar{X} \approx \mathcal{N}\left(\mu,\frac{\sigma^2}{n}\right)$$ or, in other words, $$\frac{\bar{X} - \mu}{\frac{\sigma}{\sqrt{n}}} \approx \mathcal{N}(0,1).$$ This is an important theorem used in estimation and inference, and will be used throughout the semester.
+
+## Chi-squared $\chi^2$ Distribution
+
+Let $S_x^2$ be the random variable associated with the sample variance $s_x^2$. The chi-squared distribution can be used to describe the distribution of $S_x^2$, among other types of random variables. More specifically, $$\frac{(n-1)S_x^2}{\sigma^2} \sim \chi^2_{df = n-1}.$$
+
+The chi-squared distribution applies only to positive random variables and is significantly skewed to the right.
+
+```{r, echo = FALSE}
+ggplot(data = data.frame(x = c(0, 20)), aes(x)) +
+  stat_function(fun = dchisq, n = 101, args = list(df = 6)) + 
+  ylab("") +
+  scale_y_continuous(breaks = NULL) + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+## $t$ Distribution
+
+Let $Z \sim \mathcal{N}(0,1)$ and $X \sim \chi^2_{n-1}$ where $Z$ and $X$ are independent. Then
+
+\$\$\\frac{Z}{\\sqrt{X/(n-1)}} \\sim t\_{df = n-1}\$\$
+
+Recall that we previously defined $\frac{\bar{X} - \mu}{\frac{\sigma}{\sqrt{n}}} \approx \mathcal{N}(0,1)$ and $\frac{(n-1)S_x^2}{\sigma^2} \sim \chi^2_{df = n-1}.$ It can be proven that these variables are also independent of each other (will cover topics like this in STAT 405). Therefore, putting these two items together, we have $$\frac{\bar{X} - \mu}{\frac{s_x}{\sqrt{n}}} \sim t_{df = n-1}.$$
+
+Like the normal distribution, the $t$ distribution is also symmetric and unimodal, but has fatter tails to account for the fact that we are using an estimate $s_x$ instead of $\sigma_x$.
+
+```{r, echo = FALSE}
+ggplot(data = data.frame(x = c(-4, 4)), aes(x)) +
+  stat_function(fun = dnorm, n = 101, args = list(mean = 0, sd = 1)) +
+  stat_function(fun = dt, n = 101, args = list(df = 3), aes(colour = "red")) +
+  ylab("") +
+  scale_y_continuous(breaks = NULL) + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+### Example
+
+Suppose $X \sim t_{df=10}$.
+
+### a
+
+What is $Pr(X < 2.2)$?
+
+```{r}
+pt(2.2,10)
+```
+
+### b
+
+What is the $0.8$ quantile/$80^{th}$ percentile of $X$?
+
+```{r}
+qt(0.8,10)
+```
+
+## $F$ Distribution
+
+Suppose now we have $X \sim \chi^2_{df = \nu_1}$ and $Y \sim \chi^2_{df = \nu_2}$ where $X$ and $Y$ are independent. Then, $$\frac{X/\nu_1}{Y/\nu_2} \sim F_{df1 = \nu_1,df2 = \nu_2}$$ where $df1$ is denoted as the **numerator degrees of freedom** and $df2$ is denoted as the **denominator degrees of freedom**.
+
+For example, if $S_x^2$ and $S_y^2$ are sample variances for independent random variables $X$ and $Y$, respectively, and we assume sample sizes of $n_x$ and $n_y$, we can use the above defintions of chi-squared distributions to show that $$\frac{S_x^2/\sigma_x^2}{S_y^2/\sigma_y^2} \sim F_{df1 = n_x-1,df2 = n_y - 1}.$$
+
+The $F$ distribution is used to calculate p-values in multiple linear regression hypothesis testing!
+
+Like the $\chi^2$ distribution, the $F$ distribution is skewed to the right.
+
+```{r, echo = FALSE}
+ggplot(data = data.frame(x = c(0, 20)), aes(x)) +
+  stat_function(fun = dchisq, n = 101, args = list(df = 6)) + 
+  stat_function(fun = df, n = 101, args = list(df1 = 6, df2 = 21), aes(colour="red")) + 
+  ylab("") +
+  scale_y_continuous(breaks = NULL) + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+### Example
+
+Suppose $X \sim F_{df1=6,df2=21}$.
+
+### a
+
+What is $Pr(X < 1.3)$?
+
+```{r}
+pf(1.3,6,21)
+```
+
+### b
+
+Find $x$ such that $Pr(X > x) = 0.4$.
+
+```{r}
+qf(1-0.4,6,21)
+qf(0.4,6,21,lower.tail = FALSE)
+```
+
+The $F$ distribution is related to the $t$ distribution because if a random variable $T \sim t_{df=\nu}$, then $T^2 \sim F(df1=1,df2=\nu)$
+
+## Notes for distribution calculations in R
+
+-   Starts with p: We are inputting a *quantile* to output a *probability*
+
+-   Starts with q: We are inputting a *probability* to output a *quantile*
+
+-   norm: We are using a *Normal* distribution with mean $\mu$ and standard deviation $\sigma$
+
+-   t: We are using a *t* distribution with degrees of freedom $df$
+
+-   f: We are using an *F* distribution with numerator degrees of freedom $df1$ and denominator degrees of freedom $df2$
+
+# Statistical Inference
+
+## Estimation
+
+-   **Estimation**: The category of statistical inference concerned with quantifying the specific value of a population parameter.
+
+For example, if we have a random sample of data $x_1,x_2,\dots,x_n$ from a population, we can obtain an estimate of the population mean, $\mu$, by the sample mean $\bar{x}$.
+
+Can we say that $\bar{x}$ is equivalent to $\mu$?
+
+**NO**, different samples produce different sample means.
+
+We need to find a way to quantify the uncertainty of our estimate of the population parameter we are interested in (the population mean in this example).
+
+-   **Confidence Interval**: A pair of values that provides a range of *plausible* values for the population parameter for a given level of confidence $C = 100 \times (1 - \alpha)$.
+    -   $\alpha$ is the given level of significance
+
+### Assumptions needed to calculate a confidence interval
+
+-   Data comes from a random sample from the population of interest.
+
+Recall that $\frac{\bar{X} - \mu}{\frac{s_x}{\sqrt{n}}} \sim t_{df = n-1}.$ Define $t_\alpha^*$ as a value from the $t$-distribution such that $P(-t_\alpha^* \leq \frac{\bar{X} - \mu}{s_x/\sqrt{n}} \leq t_\alpha^*) = 1 - \alpha$.
+
+Solving the interior for $\mu$ we get $P(\bar{x} - t_\alpha^*\frac{s_x}{\sqrt{n}} \leq \mu \leq \bar{x} + t_\alpha^*\frac{s_x}{\sqrt{n}}) = 1 - \alpha$.
+
+A $C\%$ confidence interval for a population mean, $\mu$ is written as $$\bar{x} \pm t_{n-1,1-\frac{\alpha}{2}} \times \frac{s_x}{\sqrt{n}},$$ where $t_{n-1,1-\frac{\alpha}{2}}$ is the $1-\frac{\alpha}{2}$ quantile of the $t$-distribution with $n-1$ degrees of freedom.
+
+### Example
+
+Recall the airfares dataset we previously uploaded into our R session. Assume that the data comes from the population of interest, which in this case is all domestic flights out of O'Hare International Airport. Calculate a 95% confidence interval for the mean flight distance.
+
+```{r}
+# By hand 
+dist <- airfares$Distance
+xbar <- mean(dist)
+sx <- sd(dist)
+n <- length(dist)
+alpha <- 0.05
+crit <- qt(1-alpha/2,n-1)
+xbar + c(-1,1) * crit * sx / sqrt(n)
+
+#short cut 
+t.test(dist,conf.level = 1-alpha)
+#note t.test calculates 96% CI by default
+```
+
+### Interpreting a confidence interval
+
+We **cannot say** there is a 95% probability that the true population parameter is between the values in the confidence interval. Once the interval is calculated, it either **does** contain the true parameter, or it **does not**.
+
+We are $\boldsymbol{C\%}$ confident that the **true population parameter in the context of the given problem** is between **lower bound with units** and **upper bound with units**.
+
+Go back to the previous example. Interpret the 95% CI in the context of the problem.
+
+## Hypothesis testing
+
+-   **Hypothesis Testing**: The category of statistical inference concerned with testing whether our estimated value for the population parameter is different enough from the hypothesized value
+
+### Procedure for performing a hypothesis test
+
+1.  Check that the assumptions needed to perform a hypothesis test are met.
+
+-   Data comes from a random sample from the population of interest.
+
+2.  Specifically state the null hypothesis, $H_0$, and the alternative hypothesis, $H_a$.
+3.  Specify the level of significance, $\alpha$.
+4.  Calculate the test statistic.
+5.  Calculate the appropriate p-value for the hypothesis test.
+6.  Form a decision to either reject $H_0$ or fail to reject $H_0$.
+7.  State your conclusion.
+
+### Example
+
+In the airfares dataset, suppose it is believed that the average distance for domestic flights from O'Hare is 1000 miles. Perform a hypothesis test for this belief with $\alpha = 0.05$.
+
+-   $H_0: \mu = 1000$
+
+-   $H_a: \mu \neq 1000$
+
+    How do we calculate the test statistic?
+
+    We know that if we knew mu, (xbar - mu) / (s/sqrt(n) is about tn - 1
+
+    Under H0 we can subsitute in mu = munot = 1000 and we can plug in our sample mean and sample standard deviation, s to get our test statistic, t, as well as corresponding p value.
+
+```{r}
+# note that we are using xbar, sx, and n that we defined when calculating the confidence interval
+t <- (xbar - 1000)/(sx/sqrt(n))
+# two sided t test
+p <- 2*pt(abs(t), n-1, lower.tail = FALSE)
+t
+p
+```
+
+t = -1.285, p = 0.2172 so we fail to reject H0 and we do not have statistically significant evidence that the true average flight distance for flights out of O\'Hare is different than 1000 miles.
+
+### What makes the hypothesis test accurate?
+
+If $H_0$ were true (i.e. $\mu = \mu_0$) then, it must be true that $t^* = \frac{\bar{x} - \mu_0}{\frac{s_x}{\sqrt{n}}} \sim t_{df = n-1},$
+
+which would imply that $p-value = P(-t^* \leq T_{n-1} \leq t^*|\mu = \mu_0)$ has a "relatively" high probability. The level of significance $\alpha$ represents the probability of Type I Error that we as researchers are willing to accept. Type I Error means that we reject $H_0$ when it is true.
+
+-   If $p-value < \alpha$, then we have a statistically signficant difference in the data and our null hypothesis, so we reject $H_0$.
+
+-   If $p-value \geq \alpha$, then we do not have a statistically signficant difference in the data and our null hypothesis, but we do not have all of the evidence to prove $H_0$ is true, so we fail to reject $H_0$.
+
+## Connection between confidence intervals and hypothesis testing.
+
+**CI and HT connection**: If a confidence interval and hypothesis test are calculated on the \textbf{same observed dataset} where $H_a: \mu \neq \mu_0$ and the same $\alpha$ is used in both calculations, then $$\mu_0 \text{ is not inside the C% CI} \Leftrightarrow H_0 \text{ is rejected}$$ and $$\mu_0 \text{ is inside the C% CI} \Leftrightarrow H_0 \text{ is not rejected}.$$
+
+### Example
+
+Return to the confidence interval and hypothesis test we just conducted. Are these answers compatible?
