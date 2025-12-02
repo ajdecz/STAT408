@@ -1,0 +1,248 @@
+---
+title: "Bayesian Regression"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+runtime: shiny
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+## Background Information
+
+Throughout the semester, we have been discussion topics with regards to regression analysis where we say the data come from a **random sample** of the population. All of these techniques assume we have a **fixed** but unknown set of regression parameters. These all fall under the umbrella of *frequentist* statistics; now, I will teach you a set of statistics called *Bayesian* statistics.
+
+## Definition of Probability
+
+-   Frequentist: The relative frequency a particular event were to occur if we repeat the sampling procedure to obtain the data an infinite number of times
+
+-   Bayesian: The expectation that a certain event were to occur based on previous knowledge or a personal belief that the event would occur
+
+Bayesian statistics comes from the findings of English statistician Thomas Bayes.
+
+The major difference between frequentist and Bayesian statistics is the difference in what is fixed and what is random.
+
+|             | Data   | Parameters |
+|-------------|:-------|:-----------|
+| Frequentist | Random | Fixed      |
+| Bayesian    | Fixed  | Random     |
+
+## Bayes' Theorem
+
+### Motivating Example
+
+Suppose a person tests positive for a disease that is prevalent in only 2% of the population. The test returns a true positive result 99% of the time and a true negative result 95% of the time. What is the probability that the person actually has the disease?
+
+```{r}
+P_D <- 0.02
+P_PD <- 0.99
+P_NDc <- 0.95
+P_P <- P_PD * P_D + (1 - P_NDc) * (1 - P_D)
+P_PD * P_D / P_P
+```
+
+**Bayes Theorem**: Suppose $A$ and $B$ are two non-mutually exclusive events such that $P(A) \neq 0$. Then, $$P(B|A) = \frac{P(A|B)P(B)}{P(A)}$$
+
+## Bayesian Parameter Analysis
+
+Suppose $\boldsymbol{y} = \{y_1,\cdots,y_n\}$ are a set of data observations from a distribution with likelihood function $p(\boldsymbol{y}|\theta)$
+
+**Prior Distribution** ($\pi(\theta)$): Represents our knowledge about the unknown parameter $\theta$ *before* gathering the data
+
+**Posterior Distribution** ($\pi(\theta | \boldsymbol{y})$): Represents our knowledge about the unknown parameter $\theta$ *after* gathering the data
+
+The posterior distribution is calculated using Bayes' Theorem $$\pi(\theta | \boldsymbol{y}) = \frac{p(\boldsymbol{y}|\theta)\pi(\theta)}{p(\boldsymbol{y})}$$ where $p(\boldsymbol{y}) = \int p(\boldsymbol{y}|\theta)\pi(\theta) d\theta$.
+
+-   The choice of the likelihood function $p$ is dependent on the structure of your response variable, just like in our previous lectures (binary is binomial/logistic regression, count is Poisson, continuous is normal, etc.)
+
+## How to choose your prior distribution?
+
+-   Hyperparameters: Parameters chosen by the analyst to represent how much information should be included in the prior
+
+    -   Weakly Informative: Little information is included in the prior, meaning the data will incorporate the majority of information in the posterior
+
+    -   Moderate Informative: The data and the prior have roughly the same amount of information in the calculation of the posterior distribution
+
+    -   Strongly Informative: A lot of information is included in the prior, meaning the prior will incorporate the majority of information in the posterior
+
+-   Conjugate prior: A prior distribution where the posterior follows the same distribution with different hyperparameters.
+
+### Interactive Example
+
+Consider the following example where $y_1,\cdots,y_n$ is a set of binary random variables each with success probability $p$. Suppose we want to perform a Bayesian analysis with a prior $$p \sim \text{Beta}(a,b)$$
+
+```{r shiny_app, echo=FALSE}
+library(shiny)
+library(ggplot2)
+
+# UI
+ui <- fluidPage(
+  titlePanel("b-Binomial Prior vs Posterior"),
+  sidebarLayout(
+    sidebarPanel(
+      h3("Prior Parameters"),
+      numericInput("a", "a", value = 2, min = 0.1, step = 0.1),
+      numericInput("b", "b", value = 2, min = 0.1, step = 0.1),
+      hr(),
+      h3("Observed Data"),
+      numericInput("n", "Number of Trials (n)", value = 10, min = 1, step = 1),
+      numericInput("k", "Number of Successes (x)", value = 5, min = 0, step = 1),
+      hr(),
+      actionButton("update", "Update")
+    ),
+    mainPanel(
+      plotOutput("distPlot")
+    )
+  )
+)
+
+# Server
+server <- function(input, output) {
+  reactive_values <- reactiveValues()
+  
+  observeEvent(input$update, {
+    # Capture inputs
+    a_prior <- input$a
+    b_prior <- input$b
+    n <- input$n
+    k <- input$k
+    
+    # Posterior parameters
+    a_post <- a_prior + k
+    b_post <- b_prior + n - k
+    
+    # Data for visualization
+    x <- seq(0, 1, length.out = 500)
+    prior <- dbeta(x, a_prior, b_prior)
+    posterior <- dbeta(x, a_post, b_post)
+    
+    reactive_values$data <- data.frame(
+      x = c(x, x),
+      y = c(prior, posterior),
+      Distribution = rep(c("Prior", "Posterior"), each = length(x))
+    )
+  })
+  
+  output$distPlot <- renderPlot({
+    req(reactive_values$data)
+    ggplot(reactive_values$data, aes(x = x, y = y, color = Distribution)) +
+      geom_line(size = 1.2) +
+      labs(
+        title = "Prior vs Posterior Distribution",
+        x = "Probability of Success (θ)",
+        y = "Density"
+      ) +
+      theme_minimal() +
+      theme(legend.title = element_blank())
+  })
+  
+  output$posteriorParams <- renderText({
+    req(reactive_values$posteriorParams)
+    reactive_values$posteriorParams
+  })
+}
+
+# Run the app
+shinyApp(ui = ui, server = server)
+```
+
+-   My suggestion: unless you have relatively certain prior information about the model parameters or you have a small amount of data points, choose a weakly informative prior so that the data has most of the weight in the posterior
+
+## Bayesian Regression
+
+Suppose we have a set of response variables $y_1,\cdots,y_n$ along with explanatory variables $\boldsymbol{x}_1,\cdots,\boldsymbol{x}_n$ for $n$ observations. We will start by assuming a linear regression model
+
+$$\boldsymbol{y}|\boldsymbol{\beta},\sigma^2 \sim \mathcal{N}(\boldsymbol{X}\boldsymbol{\beta},\sigma^2 I)$$
+
+Suppose we wish to set a prior distribution for $\boldsymbol{\beta}$ as
+
+$$\boldsymbol{\beta}|\sigma^2 \sim \mathcal{N}(\boldsymbol{m},\sigma^2 A)$$ which gives a functional form of the log-posterior distribution as
+
+$$\mathcal{L}(\boldsymbol{\beta}) = \log \pi(\boldsymbol{\beta}|\boldsymbol{y}) = \frac{-1}{2\sigma^2}(\boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta})'(\boldsymbol{y} - \boldsymbol{X}\boldsymbol{\beta}) - \frac{1}{2\sigma^2}(\boldsymbol{\beta} - \boldsymbol{m})'A^{-1}(\boldsymbol{\beta} - \boldsymbol{m}) + c$$ where $c$ is a constant term to ensure $\pi$ is a valid probability distribution.
+
+*Note*: This looks very similar to the functional form of the sums of squared errors used to find the estimate of $\boldsymbol{\beta}$ that we have discussed in multiple linear regression! In fact, we can find the value of $\boldsymbol{\beta}$ that maximizes the posterior distribution, which is useful for us in Bayesian regression.
+
+**Maximum A Posteriori (MAP)**: The value of a model parameter that maximizes its posterior distribution for a given prior distribution. Can also be described as the posterior maximum
+
+For linear regression, the MAP for $\boldsymbol{\beta}$ with the above prior distribution (which is also the posterior mean and median, because normality, is)
+
+$$\hat{\boldsymbol{\beta}}_{MAP} = ((\boldsymbol{X}'\boldsymbol{X} + A^{-1})^{-1} (\boldsymbol{X}'\boldsymbol{y} + A^{-1}\boldsymbol{m})$$- This MAP can be defined as a precision-weighted average of the estimate of $\boldsymbol{\beta}$ from the data and the estimate from the prior
+
+###Example
+
+Find the MAP of the insurance charges regression parameters assuming a normal prior with $\boldsymbol{m} = \boldsymbol{0}$ and $A = I$.
+
+```{r}
+```
+
+## Generalized Linear Bayesian Regression
+
+For other types of regression models, closed forms of the posterior distributions regression parameters do not exist for any form of the prior. Therefore, we must use alternative methods to estimate the distribution.
+
+**Markov Chain Monte Carlo (MCMC)**: A method of performing a Monte Carlo simulation using Markov Chains to obtain pseudo-independent samples from the posterior distribution $\pi(\boldsymbol{\beta},\sigma^2|\boldsymbol{y})$.
+
+-   We will implement Bayesian regression through the R package **brms**, which obtains samples using an MCMC algorithm called the No U-Turn Sampler (NUTS) implemented in STAN.
+
+### Example
+
+Run a Bayesian regression analysis for the insurance charges dataset in STAN with a normal(0,5) prior for the regression parameters.
+
+-   For a prior distribution for regression parameters, the higher the variance, the less informative the prior
+
+```{r}
+```
+
+**Credible Interval**: The Bayesian equivalent of a confidence interval, but with different interpretations
+
+-   100(1- $\alpha$)% confidence intervals describe the percentage of 100(1- $\alpha$)% confidence intervals that contain the true values of the regression parameters for different random samples. It also describes how confident we are that the true regression parameter values are in the confidence interval
+
+-   100(1- $\alpha$)% credible intervals describe the probability that the true value of the parameter is inside the calculated 100(1- $\alpha$)% credible interval.
+
+### Example
+
+Interpret the 95% credible interval for the parameter smokeryes in the context of the problem.
+
+**R-hat**: An evaluation tool for determining if an MCMC algorithm has converged to the true posterior distribution. An Rhat close to 1 (typically 1.05 or less) indicates no evidence that the MCMC algorithm has not converged to the posterior distribution.
+
+**Effective Sample Size (ESS)**: An estimate of the equivalent number of independent samples in our MCMC algorithm to account for the autocorrelation between the MCMC samples. An ESS closer to the actual number of samples is good!
+
+## Hypothesis Testing in Bayesian Regression
+
+Hypothesis Testing is not natural in Bayesian statistics because we are mainly interested in estimating the posterior distribution of the model parameters $(\boldsymbol{\beta},\sigma^2$ in our case). In addition, Bayesian statisticians do not use terms like reject or fail to reject $H_0$, because evidence is on a sliding scale, not preset based on an arbitrary level of significance $\alpha$.
+
+**Bayes Factors**: The ratio of the marginal likelihoods $p(\boldsymbol{y}) = \int p(\boldsymbol{y}|\boldsymbol{\beta},\sigma^2)\pi(\boldsymbol{\beta},\sigma^2) d\sigma^2d\boldsymbol{\beta}$ for two different models $M_1$ ($H_0$ in our case) and $M_2$ ($H_a$ in our case).
+
+$$BF(M_1,M_2) = \frac{p(\boldsymbol{y}|M_1)}{p(\boldsymbol{y}|M_2)} = \frac{\int p(\boldsymbol{y}|\boldsymbol{\beta},\sigma^2,M_1)\pi(\boldsymbol{\beta},\sigma^2|M_1) d\sigma^2d\boldsymbol{\beta}}{\int p(\boldsymbol{y}|\boldsymbol{\beta},\sigma^2,M_2)\pi(\boldsymbol{\beta},\sigma^2|M_2) d\sigma^2d\boldsymbol{\beta}} = \frac{p(M_1|\boldsymbol{y})p(M_2)}{p(M_2|\boldsymbol{y})p(M_1)}$$
+
+where $p(M_1)$ and $p(M_2)$ are the prior probabilities that $M_1$ and $M_2$ are the correct models (typically, we set $p(M_1) = p(M_2) = 0.5$).
+
+*Note*: Because we do not make a decision to either reject or fail to reject $H_0$, we only say if we have (or do not have) strong evidence that model $M_2$ or $M_1$ is the correct model. The choices are typically made on the following scale:
+
+| Bayes Factor (on $log_{10}$ scale) | Strength of Evidence          |
+|------------------------------------|-------------------------------|
+| \< -2                              | Decisive in favor of $M_2$    |
+| -2 to -1                           | Strong in favor of $M_2$      |
+| -1 to -0.5                         | Substantial in favor of $M_2$ |
+| -0.5 to 0.5                        | No evidence worth mentioning  |
+| 0.5 to 1                           | Substantial in favor of $M_1$ |
+| 1 to 2                             | Strong in favor of $M_1$      |
+| \> 2                               | Decisive in favor of $M_1$    |
+
+### Example
+
+Determine the amount of evidence for a model $M_1$ for healthcare expenditures that contains every explanatory variable except region, and a model $M_2$ for healthcare expenditures that contains every explanatory variable, including region.
+
+```{r}
+```
+
+*Note*: Bayes Factors are not restrictive to nested models, like F-tests or $\chi^2-$tests. Therefore, we can perform tests to determine if a non-linear regression model performs better than a linear regression model!
+
+### Example
+
+Determine the amount of evidence for a non-linear model $M_1$ for healthcare expenditures, and a model $M_2$ for a linear model for healthcare expenditures.
+
+```{r}
+```

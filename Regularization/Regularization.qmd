@@ -1,0 +1,351 @@
+---
+title: "Regularization"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+### Inference:
+
+-   Want to quantify relationships between variables
+
+-   Care a lot about Model Assumptions
+
+-   Examples:
+
+    -   Healthcare
+
+    -   Economics
+
+### Prediction:
+
+-   Want to make the best possible prediction for our response variable
+
+-   Do not care about model assumptions
+
+### Overall Note:
+
+-   Pick a direction and discuss the real world implications.
+
+## Background Information
+
+Throughout this semester, we have discussed a variety of regression techniques, from multiple linear regression to polynomial regression to generalized linear models to non-linear regression to mixed effects models to time series models. We have also discussed methods to choose the appropriate model parameters via confidence intervals, hypothesis tests, variable selection, etc.
+
+All of the above methods we have previously discussed revolved around **inference**, meaning we are interested in describing the relationship between explanatory variables $\boldsymbol{x}_i$ and the response variable $y_i$ for $i = 1,\dots,n$. Today, we will discuss methods of linear regression that are used in **prediction**.
+
+Note, throughout this set of notes, we will assume the data follows a linear regression format:
+
+$$y_i = \boldsymbol{x}_i\boldsymbol{\beta} + \epsilon_i$$ $$\epsilon_i \sim \mathcal{N}(0,\sigma^2)$$
+
+### Example
+
+Consider the mtcars dataset in R. Suppose we want to use the data to predict a car's fuel effciency by its weight.
+
+-   In the below example, we are interested in using the regression line calculated from the points in blue to predict the points in red. In other words we can say:
+
+    -   *In-sample* data: blue points
+    -   *Out-of-sample* data: red points
+
+```{r}
+library(tidyverse)
+# Split data into training and testing sets
+set.seed(10062018)
+train_index <- sample(1:nrow(mtcars), size = 0.75 * nrow(mtcars))
+train_data <- mtcars[train_index, ]
+test_data <- mtcars[-train_index, ]
+train_data$Type <- "Train"
+test_data$Type <- "Test"
+
+mod <- lm(mpg ~ wt,train_data)
+x_test <- as.matrix(test_data[, -1])
+y_test <- test_data$mpg
+
+y_pred <- predict(mod,data.frame(wt=test_data$wt))
+
+ggplot() +
+  geom_point(data=train_data,aes(x=wt,y=mpg),colour="blue") +
+  geom_point(data=test_data,aes(x=wt,y=mpg),colour="red") +
+  geom_abline(aes(intercept=coef(mod)[1],slope=coef(mod)[2]),linetype=2,colour="blue") +
+  geom_segment(aes(x=test_data$wt,xend=test_data$wt,y=y_test,yend=y_pred),colour="red",linetype=2)
+```
+
+What is the mean and variance of the residuals from the least squares regression line (points in blue)?
+
+And what are the mean and variance of the residuals from the out of sample predictions (points in red).
+
+```{r}
+# note: y pred is the predictions of the out of sample datapoints from our in sample predictions
+mean(resid(mod)) # In sample mean
+var(resid(mod)) # In sample variance
+mean(y_pred) # out of sample mean
+var(y_pred) # out of sample variance
+```
+
+-   Because these data points are not used in the estimation of the model parameters, we have introduced **prediction bias** into our out-of-sample testing, hence why the variance of the out-of-sample residuals is higher.
+
+**Regularization**: A modern regression technique where we add a regularization or penalty term to the least squares regression equation to incorporate the prediction bias into our model. These modern methods are called **constrained least squares**
+
+$$\hat{\boldsymbol{\beta}} = \min_\boldsymbol{\beta} \sum_{i=1}^n (y_i - \boldsymbol{x}_i\boldsymbol{\beta})^2 \text{ subject to } R(\boldsymbol{\beta}) \leq t$$
+
+or equivalently
+
+$$\hat{\boldsymbol{\beta}} = \min_\boldsymbol{\beta} \sum_{i=1}^n (y_i - \boldsymbol{x}_i\boldsymbol{\beta})^2 + \lambda R(\boldsymbol{\beta})$$
+
+In the above formula
+
+-   $R(\boldsymbol{\beta})$ is the penalty or regularizer term and
+-   $\lambda > 0$ is the smoothing parameter controlling how much influence the penalty term has on $\hat{\boldsymbol{\beta}}$
+
+There are two common regularization terms we will discuss
+
+-   (Least Absolute Shrinkage Selection Operator) LASSO regression: $R(\boldsymbol{\beta}) = \sum_{i=1}^p |\beta_j|$
+
+-   Ridge regression: $R(\boldsymbol{\beta}) = \sum_{i=1}^p \beta_j^2$
+
+-   Note: The intercept terms are not included in the calculation of the penalty terms.
+
+What is the difference between the two regularization types? Let's visualize this by what happens to the regression lines for the mtcars model for different values of $\lambda$. (Note: We will start using the whole dataset now instead of splitting it.)
+
+### LASSO Regression Example
+
+```{r}
+# Library used for constrained linear regression
+# technically a variable selection technique
+library(glmnet)
+# glmnet performs constrained regression for a given model matrix and response variable
+# alpha = 1 means LASSO regression
+X <- model.matrix(~ wt,mtcars)
+Y <- mtcars$mpg
+mod_0 <- glmnet(X,Y, alpha = 1, lambda = 0) # traditional regression
+mod_1 <- glmnet(X,Y, alpha = 1, lambda = 1)
+mod_5 <- glmnet(X,Y, alpha = 1, lambda = 5)
+mod_10 <- glmnet(X,Y, alpha = 1, lambda = 10) # hits zero exactly
+
+ggplot() +
+  geom_point(data=mtcars,aes(x=wt,y=mpg)) +
+  geom_abline(aes(intercept=coef(mod_0)[1],slope=coef(mod_0)[3]),linetype=2,colour="blue") +
+  geom_abline(aes(intercept=coef(mod_1)[1],slope=coef(mod_1)[3]),linetype=2,colour="red") +
+  geom_abline(aes(intercept=coef(mod_5)[1],slope=coef(mod_5)[3]),linetype=2,colour="green") +
+  geom_abline(aes(intercept=coef(mod_10)[1],slope=coef(mod_10)[3]),linetype=2,colour="black")
+```
+
+As $\lambda$ gets larger, LASSO shrinks the coefficients of the unimportant variables. This could be for any $\lambda$ .
+
+### Ridge Regression Example
+
+```{r}
+# glmnet performs constrained regression for a given model matrix and response variable
+# alpha = 0 means ridge regression
+X <- model.matrix(~ wt,mtcars)
+Y <- mtcars$mpg
+mod_0 <- glmnet(X,Y, alpha = 0, lambda = 0) #don't get exactly zero but somewhat close
+mod_1 <- glmnet(X,Y, alpha = 0, lambda = 1)
+mod_5 <- glmnet(X,Y, alpha = 0, lambda = 5)
+mod_10 <- glmnet(X,Y, alpha = 0, lambda = 10)
+mod_100 <- glmnet(X,Y, alpha = 0, lambda = 100)
+
+ggplot() +
+  geom_point(data=mtcars,aes(x=wt,y=mpg)) +
+  geom_abline(aes(intercept=coef(mod_0)[1],slope=coef(mod_0)[3]),linetype=2,colour="blue") +
+  geom_abline(aes(intercept=coef(mod_1)[1],slope=coef(mod_1)[3]),linetype=2,colour="red") +
+  geom_abline(aes(intercept=coef(mod_5)[1],slope=coef(mod_5)[3]),linetype=2,colour="green") +
+  geom_abline(aes(intercept=coef(mod_10)[1],slope=coef(mod_10)[3]),linetype=2,colour="black") + 
+    geom_abline(aes(intercept=coef(mod_100)[1],slope=coef(mod_100)[3]),linetype=2,colour="brown")
+```
+
+Here the coefficients approach 0 as $\lambda \rightarrow \infty$ , so we are simply decreasing the magnitude of the coefficients.
+
+## Differences of LASSO and Ridge
+
+-   LASSO simplifies models by reducing the number of explanatory variables, helping to increase interpretability, often used in variable selection
+
+-   Ridge helps to control for overfitting by reducing the magnitude of the coefficients, while leaving all of the explanatory variables in the model
+
+## A Combination of LASSO and Ridge
+
+-   Elastic-Net is a linear combination of LASSO and Ridge penalty terms in the model.
+
+    $$
+    R(\boldsymbol{\beta}) = \lambda(\alpha\sum_{i=1}^p |\beta_i| + (1-\alpha)\sum_{i=1}^p \beta_i^2)
+    $$
+
+Note: $0 < \alpha <1$
+
+If $\alpha = 1$ , we get LASSO regression
+
+If $\alpha = 0$ , we get ridge regression
+
+### Elastic Net Regression Example
+
+```{r}
+# glmnet performs constrained regression for a given model matrix and response variable
+# alpha = 0.5 means elastic net with alpha = 0.5
+X <- model.matrix(~ wt,mtcars)
+Y <- mtcars$mpg
+mod_0 <- glmnet(X,Y, alpha = 0.5, lambda = 0) 
+mod_1 <- glmnet(X,Y, alpha = 0.5, lambda = 1)
+mod_5 <- glmnet(X,Y, alpha = 0.5, lambda = 5)
+mod_10 <- glmnet(X,Y, alpha = 0.5, lambda = 10)
+mod_100 <- glmnet(X,Y, alpha = 0.5, lambda = 100)
+
+ggplot() +
+  geom_point(data=mtcars,aes(x=wt,y=mpg)) +
+  geom_abline(aes(intercept=coef(mod_0)[1],slope=coef(mod_0)[3]),linetype=2,colour="blue") +
+  geom_abline(aes(intercept=coef(mod_1)[1],slope=coef(mod_1)[3]),linetype=2,colour="red") +
+  geom_abline(aes(intercept=coef(mod_5)[1],slope=coef(mod_5)[3]),linetype=2,colour="green") +
+  geom_abline(aes(intercept=coef(mod_10)[1],slope=coef(mod_10)[3]),linetype=2,colour="black") + 
+    geom_abline(aes(intercept=coef(mod_100)[1],slope=coef(mod_100)[3]),linetype=2,colour="brown")
+```
+
+Notes:
+
+-   if you want to perform a variable selection procedure, use LASSO
+
+-   if you want to reduce the possibility of overfitting, use ridge
+
+-   if you want a combination use elastic net
+
+## Finding $\hat{\boldsymbol{\beta}}$ and $\hat{\lambda}$
+
+When the goal of regression estimation is *prediction* rather than *inference*, we want to choose the values of the regression parameters $\boldsymbol{\beta}$ that minimize the *out-of-sample variance* rather than the *in-sample variance*.
+
+**Prediction Error**: The difference between an *out-of-sample* value of the response $y_i'$ and its prediction using the *in-sample* regression estimates $\hat{\boldsymbol{\beta}}$ for $i = 1,\cdots,n'$
+
+$$\text{PE} = y_i' - \boldsymbol{x}_i'\hat{\boldsymbol{\beta}}$$
+
+**Mean Squared Prediction Error**: The average prediction error for all data points in the *out-of-sample* dataset.
+
+$$\text{MSPE} = \frac{1}{n'}\sum_{i=1}^{n'} (y_i' - \boldsymbol{x}_i'\hat{\boldsymbol{\beta}})^2$$
+
+Note: in problems where we assume the data are binomial, poisson, or another glm, we use the new appropriate error function (via deviance).
+
+In problems where the ultimate goal is prediction rather than inference, we want to find the values of $\boldsymbol{\beta}$ and $\lambda$ that minimize the **MSPE**.
+
+-   However, in reality, we cannot calculate a prediction on data that we do not observe! So we need to use a method to approximate the MSPE
+
+**Cross Validation**: A resampling and sample splitting methods that use different portions of the data to test and train a model on different iterations.
+
+In other words we split the data into *training* and *test* data where we:
+
+1.  Fit the constrained regression model using the *training* data
+
+2.  Calculate the MSPE using the *test* data
+
+However, we don't want to arbitrarily choose points to be in the training data or the test data. We want to use all points to be incorporated in the approximation of the MSPE.
+
+**K-Fold Cross Validation**: A cross validation technique where the data points are randomly placed into $K$ subgroups, and regression is performed as follows, for a given value of $\lambda$
+
+-   Separate Data into subgroups $F_1, \cdots, F_K$
+
+For $k$ in $1:K$
+
+-   Calculate $$\hat{\boldsymbol{\beta}}^{-k} = \min_\boldsymbol{\beta} \sum_{i \notin F_k} (y_i - \boldsymbol{x}_i \boldsymbol{\beta}) + \lambda R(\boldsymbol{\beta})$$ using the data NOT in subgroup $k$
+
+-   Calculate the *total error* of the test data set $$e_k(\lambda) = \sum_{i \in F_k}(y_i - \boldsymbol{x}_i \hat{\boldsymbol{\beta}}^{-k})^2$$
+
+End For
+
+-   Calculate the estimate of the MSPE
+
+$$\hat{MSPE} = \frac{1}{n} \sum_{k=1}^K e_k(\lambda)$$
+
+![](K-fold_cross_validation_EN.png)
+
+Typically $K = 5$ or $K = 10$ are common choices. We use $K$-fold cross validation in order to choose the optimal value of $\lambda$ to use in constrained regression.
+
+Two choices are typically used
+
+-   $\hat{\lambda}$, the value of $\lambda$ that minimizes the $\hat{MSPE}$
+
+-   $\tilde{\lambda} = \hat{\lambda} + SE(\hat{\lambda})$, the one-plus standard error estimate (This helps to choose a more regularized model)
+
+## Example
+
+Find the optimal value of $\lambda$ that minimizes the MSPE in LASSO, ridge, and elastic net regression using $K = 5$-fold cross validation for the entire mtcars dataset.
+
+```{r}
+# we will use the glmnet packge I uploaded earlier
+# the inputs will be the actual model matrix X and the response vector Y 
+# The function cv.glmnet will determine the optimal smoothing parameter lambda via  K-fold cross validation
+X <- model.matrix(mpg ~ .,mtcars)
+y <- mtcars$mpg
+# LASSO 
+lam_lasso <- cv.glmnet(x = X, y = y, nfolds = 5, alpha = 1)
+# alpha = 1 means we are doing LASSO 
+plot(lam_lasso) # plots the estimates of the lambda parameters plus a 95% confidence interval
+lam_lasso
+# min is the value of lambda that minimizes the MSPE and 1se adds a standard error to it
+lambda_lasso <- lam_lasso$lambda.min
+
+#ridge
+lam_ridge <- cv.glmnet(x = X, y = y, nfolds = 5, alpha = 0)
+plot(lam_ridge)
+lam_ridge
+lambda_ridge <- lam_ridge$lambda.min
+
+# lets see which one produces the smallest MSPE
+lam_lasso$cvm[lam_lasso$lambda == lambda_lasso]
+# extracting the mspe for the optimal lambda
+
+# lets see it for ridge 
+lam_ridge$cvm[lam_ridge$lambda == lambda_ridge]
+```
+
+Note: the numbers on the top of the lambda plots are the number of nonzero coefficients in your regression.
+
+-   Every time you run the model, different groups will produce different MSPE predictions
+
+-   To eliminate this issue, you could run leave-one out cross validation (LOOCV), where each observation is its own group.
+
+```{r}
+# by setting the sett, we get the same folds evertime 
+set.seed(6262019)
+# however if we want to compare across different possible elastic nets we need to simulate the fold assignments ourselves 
+K <- 5  # 5 fold cross validation
+foldid <- sample(rep(1:K, length.out = nrow(mtcars)))
+
+lam_lasso <- cv.glmnet(x = X, y =y, foldid = foldid, alpha =1)
+lamda_lasso <- lam_lasso$lambda.min
+lam_lasso$cvm[lam_lasso$lambda == lamda_lasso]
+
+lam_ridge <- cv.glmnet(x = X, y =y, foldid = foldid, alpha =0)
+lamda_ridge <- lam_ridge$lambda.min
+lam_ridge$cvm[lam_ridge$lambda == lamda_ridge]
+
+# now lets do some cross validation for elastic net
+alpha <- seq(0,1,0.05)
+alpha_cv <- NULL
+for (a in alpha){
+  lam_a <- cv.glmnet(x = X, y = y, foldid = foldid, alpha = a)
+  lambda <- lam_a$lambda.min
+  alpha_cv <- c(alpha_cv, lam_a$cvm[lam_a$lambda == lambda])
+}
+
+a <- alpha[which.min(alpha_cv)]
+```
+
+Using your estimates of $\lambda$, calculate the prediction lines for the mtcars dataset via LASSO, ridge, and elastic net regression.
+
+```{r}
+# if you used glmnet, then you can use the predict function specifying your lambda and a
+ex <- glmnet(x = X, y = y, alpha = 1)
+pred_ex <- predict(ex, newx = as.matrix(mtcars), s = 0.05)  # newx is the matrix of explanatory variables in your model, and s is the smoothing parameter
+# you have to specify a new x
+# you can also extract the coefficients from a cv.glmnet
+# lets extract the predictions from our optimal LASSO and ridge
+pred_lasso <- predict(lam_lasso, newx = as.matrix(mtcars), s = 'lambda.min')
+pred_ridge <- predict(lam_ridge, newx = as.matrix(mtcars), s = 'lambda.min')
+# can also use an elastic net but must specify your alpha beforehand
+
+ggplot()+
+  geom_point(aes(x = 1:32, y = y))+
+  geom_point(aes(x = 1:32, y = pred_lasso, color = 'green'))+
+  geom_point(aes(x = 1:32, y = pred_ridge, color = 'brown'))
+
+# this would be a good thing to use if you are doing prediction in your analysis
+```

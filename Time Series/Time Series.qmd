@@ -1,0 +1,279 @@
+---
+title: "Time Series"
+format: 
+  html:
+    self-contained: true
+    embed-resources: true
+editor: visual
+execute: 
+  echo: true
+  include: true
+---
+
+**Time series analysis**: A statistical approach that deals with data collected over time. It is widely used in various fields, including - finance and economics - engineering, and - environmental science.
+
+The data is typically expressed as $\{Y_t\}_{t=0}^T = \{Y_0,Y_1,\cdots,Y_T\}$
+
+-   We will assume the observations are evenly spaced in time
+-   We will assume an additive linear form for the distribution of the time series as
+
+$$Y_t = \beta_0 + \sum_{s=0}^{t-1}\beta_sY_s + \sum_{s=0}^{t-1} \theta_s \epsilon_s + \epsilon_t$$
+
+where $\{\epsilon_s\}_{s=0}^{t-1}$ are random errors, or *white noise* terms. This model allows for correlation of the random variable $Y_t$ with
+
+-   Past white noise terms (deviations from the mean)
+
+-   Past data observations
+
+**Stationarity**: A time series is **stationary** if its statistical properties (e.g., mean, variance) do not change over time. Stationarity is essential for many time series models because it allows us to make valid predictions.
+
+### Example of a Non-stationary Process
+
+```{r,echo=FALSE}
+RW <- function(N, x0, mu, variance) {
+  z<-cumsum(rnorm(n=N, mean=0, 
+                  sd=sqrt(variance)))
+  t<-1:N
+  x<-x0+t*mu+z
+  return(x)
+}
+
+P1<-RW(1000,0,0,0.5)
+plot(1:1000,P1, main="Non-stationary Process Example", ylab="Value",type="l")
+```
+
+### Examples of a Stationary Process
+
+```{r,echo=FALSE}
+ma_data <- arima.sim(model=list(ma=0.9), n=1000)
+plot(ma_data, main="Stationary Pro
+cess Example", ylab="Value")
+
+ar_data <- arima.sim(model=list(ar=0.9), n=1000)
+plot(ar_data, main="Stationary Process Example", ylab="Value")
+```
+
+-   One reason we may not be able to model a non-stationary process is that as $t \rightarrow \infty$, it may be true that $E(Y_t) \rightarrow \infty$ and $\text{Var}(Y_t) \rightarrow \infty$
+
+## Types of Stationarity
+
+**First-Order Stationarity**: The mean of $Y_t$ is constant at each time point
+
+$$E(Y_s) = E(Y_t) \text{ for } 0 \leq s \leq t \leq T$$ **Second-Order Stationarity**: The covariance of $Y_t$ and $Y_{t+h}$ for some lag $h$ is constant at each time point
+
+$$\text{Cov}(Y_s,Y_{s+h}) = \text{Cov}(Y_t,Y_{t+h}) \text{ for } 0 \leq s \leq t \leq T$$ - **Note**: This implies that $\text{Var}(Y_s) = \text{Var}(Y_t)$
+
+Both of the above types of stationarity are considered to be **weak stationarity**
+
+**Strict Stationarity**: The joint distribution of any set of points does not change over time. For some lag $h > 0$
+
+$$f(Y_{s},Y_{s+1},\cdots,Y_{s+h}) = f(Y_{t},Y_{t+1},\cdots,Y_{t+h}) \text{ for } 0 \leq s \leq t \leq T$$ **Autocorrelation**: the degree of correlation of the same variables between two successive time intervals
+
+-   *Lag 1 Autocorrelation*: $\text{Cor}(Y_s,Y_{s+1})$ for $s = 0,\cdots,T-1$
+
+-   *Lag 2 Autocorrelation*: $\text{Cor}(Y_s,Y_{s+2})$ for $s = 0,\cdots,T-2$
+
+-   *Lag 3 Autocorrelation*: $\text{Cor}(Y_s,Y_{s+3})$ for $s = 0,\cdots,T-3$
+
+-   etc.
+
+Let's visualize what autocorrelation looks like for the non-stationary and stationary time series
+
+```{r}
+# P1 is the non-stationary time series from above 
+# ma_data is a stationary time series 
+# acf is a function that plots auto correlation of a time series
+acf(P1)
+acf(ma_data)
+```
+
+-   non stationary time series tend to have high auto correlations and are not easy to properly model.
+
+-   stationary time series still have some auto correlation but make modeling a little simpler
+
+**Moving Average (MA)**: time series model that expresses the output as a linear function of past white noise terms.
+
+-   MA model of order $q$: $$Y_t = \mu + \epsilon_t + \theta_1\epsilon_{t-1} + \theta_2\epsilon_{t-2} + \cdots + \theta_q\epsilon_{t-q}$$
+
+$\epsilon_{t-h} = Y_{t-h} - \mu$ for $h = 1,\dots,q$
+
+$\epsilon_t \sim \mathcal{N}(0,\sigma^2)$
+
+-   $\theta_h: h = 1,\cdots,q$ are moving average regression parameters in our model
+-   in other words the distribution of future time points in our series are correlated with the residuals $(Y_t - \mu)$ of past time points.
+
+*Notes*:
+
+-   MA models should be used in time series that are heavily influenced by random shocks whose influence dissipates over time
+
+-   MA models are always strictly stationary! (Assuming the white noise $(\epsilon_t)$ terms are independent)
+
+**Partial Autocorrelation**: the partial correlation of a stationary time series with its own lagged values, regressed the values of the time series at all shorter lags
+
+-   This contrasts with the autocorrelation function, which does not take into account the lagged values
+-   In other words, what is the autocorrelation structure after taking into account all of the previous autocorrelations (including its own)
+
+Let's visualize what partial autocorrelation looks like for the non-stationary and stationary time series
+
+```{r}
+acf(P1)
+pacf(P1)
+acf(ma_data)
+pacf(ma_data)
+acf(ar_data)
+pacf(ar_data)
+```
+
+-   If the autocorrelation goes away in a partial autocorrelation plot, this means that a model where we regress $Y_t$ with an explanatory variable of $Y_{t-1}$ can help to explain the majority of the autocorrelation, and we are left with only white noise
+
+-   For the non-stationary and ar_data plot, a linear regression model regressing $Y_{t}$ by $Y_{t-1}$ appears to be statistically significant (this is not a formal test)
+
+-   However, the ma_data still has some significant autocorrelation in the pacf plot. This is because this data was simulated from a moving average model where $Y_t$ only depends on $\epsilon_{t-1},\epsilon_{t-2},etc.$
+
+**Autoregressive (AR)**: time series model that expresses the output as a linear function of past observed values.
+
+-   AR model of order $p$: $$Y_t = \mu + \beta_1Y_{t-1} + \beta_2Y_{t-2} + \cdots + \beta_pY_{t-p} + \epsilon_t$$
+
+$\beta_i: i = 1,\dots,p$ are AR regression parameters
+
+$\epsilon_t \sim \mathcal{N}(0,\sigma^2)$
+
+-   Essentially this is a linear regression model where the previous observations are the explanatory variables
+
+*Notes*:
+
+-   AR models should be used in time series that are heavily influenced by the previous data points
+
+-   AR1 model parameters can be interpreted as representing the correlation of lag h,
+
+    -   $\beta_1$ : correlation of lag 1
+
+    -   $\beta_2$ : correlation of lag 2
+
+    -   etc.
+
+-   AR models are strictly stationary if and only if $\sum_{i=1}^p \beta_i^2 \leq 1$. (i.e., the total correlation of the system is between -1 and 1).
+
+-   The partial autocorrelation function helps to determine the order ($p$) of an AR model.
+
+-   If all the autocorrelations stay within the blue reference bands, this is an indicator for an AR(p) model, or an autoregressive model of order p, where p is the largest lag with autocorrelations outside of the blue bands.
+
+**Augmented Dickey-Fuller (ADF) Test**: A statistical test to determine if a time series is stationary. The overall test assumes that the data follows an AR(1) model, i.e.
+
+$$Y_t = \mu + \beta_1 Y_{t-1} + \epsilon_t$$ $$H_0: |\beta_1| \geq 1 (\text{Not stationary})$$ $$H_a: |\beta_1| < 1 (\text{Stationary})$$
+
+```{r}
+library(tseries)
+adf.test(P1) # p = 0.477 > 0.05 fail to reject H0 and conclude there is not statistically significant evidence that this time series is stationary. 
+
+adf.test(ma_data) # p < 0.05, so we reject H0 and conclude there is statistically significant evidence that the time series is stationary. 
+
+adf.test(ar_data) # p < 0.05, so we reject H0 and conclude there is statistically significant evidence that the time series is stationary. 
+```
+
+**ARMA Model**: A model that combines moving average and autoregressive models
+
+ARMA model of order $(p,q)$:
+
+$$Y_t = \mu + \sum_{s=1}^{p}\beta_sY_{t-s} + \sum_{s=1}^{q} \theta_s \epsilon_{t-s} + \epsilon_t$$ where $p$ and $q$ are the orders of the autoregressive and moving average terms in the model, respectively.
+
+*Note*: The ARMA model only works for stationary time series.
+
+### Interactive Example
+
+Simulate an ARMA(1,1) dataset and fit the model to a variety of different ARMA models
+
+```{r}
+# Simulate the dataset
+## arima.sim simulates a stationary time series dataset
+## AR1 parameter 0.7 (beta1)
+## MA1 parameter 0.5 (theta1)
+set.seed(100618)
+dat <- arima.sim(model=list(ar = 0.7, ma=0.5), n=1000)
+plot(dat)
+
+# in the package tseries, the arma() function will fit an arma model for a specific p and q. 
+
+mod <- arma(dat)
+summary(mod)
+
+# because we are assuming normality, we can calculate confidence intervals for the given data. 
+
+confint(mod)
+
+# the estimates and confidence intervals for these parameters represent correlation structures for the time series data, and the confidence interval calculation is the same as multiple linear regression! 
+
+# let's see what happens when we fit an ARMA(1,2) model 
+mod_2 <- arma(dat, order=c(1,2))
+summary(mod_2)
+```
+
+Lets formally test if adding the ma2 parameter is statistically significant
+
+Reduced Model: $\hat{Y}_t = \mu +\beta_1 Y_{t-1} + \theta_1 \epsilon_{t-1}$
+
+Full Model: $\hat{Y_t} = \mu + \beta_1 Y_{t-1} + \theta_1 \epsilon_{t-1} + \theta_2 \epsilon_{t-2}$ #second epsilon for the second moving average
+
+$H_0: \theta_2 = 0$ , $H_a: \theta_2 \neq 0$
+
+$t  = 1.264$, $p = 0.2062$, so we fail to reject $H_0$ and conclude adding a second-order moving average parameter to a time series model that already includes first order autoregressive and moving average parameters is not statistically significant.
+
+### Example
+
+Consider the AirPassengers dataset in R, which contains information about monthly number of airline passengers (in thousands) from January 1949 to December 1960, for a total of 144 observations
+
+(a). Plot the air passengers dataset. Determine any trends you see in the model.
+
+```{r}
+plot(AirPassengers)
+```
+
+The number of passengers is steadily increasing overtime
+
+Seasonal upticks in passenger flight (Summer)
+
+(b). Determine if the data is non-stationary.
+
+```{r}
+adf.test(AirPassengers)
+# small p value means the test indicates evidence that the data is stationary
+
+# lets look and see if the data fit an AR1 model 
+pacf(AirPassengers)
+```
+
+Note: the ADF test indicates the data are stationary,
+
+However we do not know if the assumption of an AR(1) model is violated, so the test is null and void.
+
+(c). Create a best-fitting ARMA model for the dataset.
+
+```{r}
+mod_1 <- arma(AirPassengers, order = c(1,0))
+#summary(mod_1)
+
+mod_2 <- arma(AirPassengers, order = c(1,1))
+#summary(mod_2)
+#if we are concerned about nonstationarity, we can try ARIMA(I stands for integration), which is a modeling structure for non stationary time series
+
+mod_arima <- arima(AirPassengers, order = c(1,1,1))
+summary(mod_arima)
+coef(mod_arima)
+vcov(mod_arima)
+```
+
+ARIMA models take differences of the observed $Y_t$ values over a certain lag $d$ to create a stationary time series.
+
+What to know about time series.
+
+-   Determine the difference between stationarity and non-stationarity
+
+-   Determine the difference between moving average and autoregressive parameters
+
+-   How to fit a time series model to the data.
+
+-   How to test for statistical significance of a time series model parameters.
+
+You can add any other covariates to any time series model we have discussed, because its incorporated into the linear model structures!
+
+-   Incorporate this using xreg in the arma() function.
