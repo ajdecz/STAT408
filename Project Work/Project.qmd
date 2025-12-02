@@ -14,6 +14,7 @@ let's see if there are any predictors for market value in FIFA22
 
 ```{r}
 library(tidyverse)
+library(MASS)
 
 fifa <- read.csv('FIFA22_official_data.csv')
 head(fifa)
@@ -23,21 +24,18 @@ head(fifa)
 lets look at some columns
 
 ```{r}
-# ideas for things to predict market Value... Age, Nationality, Overall, Club, Preferred.Foot, Skill.Moves, Body.Type, Height, Wright, Crossing, Finishing, HeadingAccuracy, ShortPassing, Volleys, Dribbling, Curve, FKAccuracy, LongPassing, BallControl, Acceleration, SprintSpeed, Agility, Reactions, Balance, ShotPower, Jumping, Stamina, Strength, LongShots, Aggression, Interceptions, Positioning, Vision, Penalties, Composure, StandingTackle, SlidingTackle, DefensiveAwareness 
-
-#removed club and nationality for fun reasons and body type
-
-fifa_new <- fifa %>% 
-  select(Value, Age, Overall, Preferred.Foot, Skill.Moves, Height, Weight, Crossing, Finishing, HeadingAccuracy, ShortPassing, Volleys, Dribbling, Curve, FKAccuracy, LongPassing, BallControl, Acceleration, SprintSpeed, Agility, Reactions, Balance, ShotPower, Jumping, Stamina, Strength, LongShots, Aggression, Interceptions, Positioning, Vision, Penalties, Composure, StandingTackle, SlidingTackle, DefensiveAwareness
-  )
-```
-
-Let's clean some data first
-
-```{r}
-fifa_clean <- fifa_new %>%
+# --- CLEAN DATA ---
+fifa_clean <- fifa %>% 
+  select(Value, Age, Overall, Preferred.Foot, Skill.Moves, Height, Weight,
+         Crossing, Finishing, HeadingAccuracy, ShortPassing, Volleys,
+         Dribbling, Curve, FKAccuracy, LongPassing, BallControl,
+         Acceleration, SprintSpeed, Agility, Reactions, Balance,
+         ShotPower, Jumping, Stamina, Strength, LongShots, Aggression,
+         Interceptions, Positioning, Vision, Penalties, Composure,
+         StandingTackle, SlidingTackle, DefensiveAwareness) %>%
+  
+  # ---- Convert Value strings ("€100M", "€80K") to numeric ----
   mutate(
-    # --- Clean Value ---
     Value = gsub("€", "", Value),
     Value = case_when(
       grepl("M", Value) ~ as.numeric(gsub("M", "", Value)) * 1e6,
@@ -45,34 +43,66 @@ fifa_clean <- fifa_new %>%
       TRUE ~ as.numeric(Value)
     ),
     
-    # --- Clean Height (remove "cm" and convert to numeric) ---
     Height = as.numeric(gsub("cm", "", Height)),
-    
-    # --- Clean Weight (remove "kg" and convert to numeric) ---
     Weight = as.numeric(gsub("kg", "", Weight))
   ) %>%
-  # Remove rows with missing or infinite values
-  filter(!is.na(Value), is.finite(Value)) %>%
+  
+  # ---- Remove problematic rows ----
+  filter(is.finite(Value), Value > 0) %>% 
   na.omit()
 ```
 
 now lets see if it runs the model hahahah it runs
 
 ```{r}
-mod <- lm(Value ~ ., fifa_clean)
+mod_initial <- lm(Value ~ ., fifa_clean)
+summary(mod_initial)
+plot(mod_initial,1)
+plot(mod_initial,2)
+```
 
+extre;me heteroscedasticity and right skew of the normality plot
+
+lets try a box cox to get things going
+
+```{r}
+library(MASS)
+bc <- boxcox(mod_initial)
+lambda <- bc$x[which.max(bc$y)]
+lambda
 ```
 
 ```{r}
-summary(mod)
-plot(mod)
+# log transformation
+fifa_clean <- fifa_clean %>%
+  mutate(Value_bc = log(Value))
+```
 
-#weights or boxcox 
+refitting
+
+```{r}
+mod_bc <- lm(Value_bc ~ ., data = fifa_clean %>% select(-Value))
+summary(mod_bc)
+
+# Diagnostic plots
+plot(mod_bc, 1)
+plot(mod_bc, 2)
+```
+
+Now lets do some weights
+
+```{r}
+res <- abs(residuals(mod_bc))
+w <- res^2
+mod_wls <- lm(Value_bc ~ ., 
+              data = fifa_clean %>% select(-Value),
+              weights = w)
+plot(mod_wls, 1)
+plot(mod_wls, 2)
 ```
 
 ```{r}
-summary(mod)
-plot(mod)
-
-#weights or boxcox
+summary(mod_wls)
 ```
+
+we have chosen mod_bc (log transformation as our model) bc the adjusted rsquared is better
