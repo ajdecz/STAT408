@@ -14,11 +14,11 @@ let's see if there are any predictors for market value in FIFA22
 
 ```{r}
 library(tidyverse)
-library(MASS)
 
 fifa <- read.csv('FIFA22_official_data.csv')
 head(fifa)
 
+names(fifa)
 ```
 
 lets look at some columns
@@ -26,13 +26,13 @@ lets look at some columns
 ```{r}
 # --- CLEAN DATA ---
 fifa_clean <- fifa %>% 
-  select(Value, Age, Overall, Preferred.Foot, Skill.Moves, Height, Weight,
+  dplyr::select(Value, Age, Overall, Preferred.Foot, Skill.Moves, Height, Weight,
          Crossing, Finishing, HeadingAccuracy, ShortPassing, Volleys,
          Dribbling, Curve, FKAccuracy, LongPassing, BallControl,
          Acceleration, SprintSpeed, Agility, Reactions, Balance,
          ShotPower, Jumping, Stamina, Strength, LongShots, Aggression,
          Interceptions, Positioning, Vision, Penalties, Composure,
-         StandingTackle, SlidingTackle, DefensiveAwareness) %>%
+         StandingTackle, SlidingTackle, DefensiveAwareness) %>% 
   
   # ---- Convert Value strings ("€100M", "€80K") to numeric ----
   mutate(
@@ -66,6 +66,8 @@ extre;me heteroscedasticity and right skew of the normality plot
 lets try a box cox to get things going
 
 ```{r}
+
+# boxcox analysis to see if we should do a log transformation
 library(MASS)
 bc <- boxcox(mod_initial)
 lambda <- bc$x[which.max(bc$y)]
@@ -81,12 +83,13 @@ fifa_clean <- fifa_clean %>%
 refitting
 
 ```{r}
-mod_bc <- lm(Value_bc ~ ., data = fifa_clean %>% select(-Value))
+mod_bc <- lm(Value_bc ~ ., data = fifa_clean %>% dplyr::select(-Value))
 summary(mod_bc)
 
 # Diagnostic plots
 plot(mod_bc, 1)
 plot(mod_bc, 2)
+summary(mod_bc)
 ```
 
 Now lets do some weights
@@ -95,7 +98,7 @@ Now lets do some weights
 res <- abs(residuals(mod_bc))
 w <- res^2
 mod_wls <- lm(Value_bc ~ ., 
-              data = fifa_clean %>% select(-Value),
+              data = fifa_clean %>% dplyr::select(-Value),
               weights = w)
 plot(mod_wls, 1)
 plot(mod_wls, 2)
@@ -106,3 +109,11 @@ summary(mod_wls)
 ```
 
 we have chosen mod_bc (log transformation as our model) bc the adjusted rsquared is better
+
+```{r}
+diff_norm_log <- summary(mod_bc)$adj.r.squared - summary(mod_initial)$adj.r.squared
+diff_norm_log * 100
+
+diff_wts_log <- summary(mod_wls)$adj.r.squared - summary(mod_bc)$adj.r.squared
+diff_wts_log * 100
+```
