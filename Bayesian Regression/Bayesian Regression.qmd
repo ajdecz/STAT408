@@ -169,13 +169,23 @@ $$\mathcal{L}(\boldsymbol{\beta}) = \log \pi(\boldsymbol{\beta}|\boldsymbol{y}) 
 
 For linear regression, the MAP for $\boldsymbol{\beta}$ with the above prior distribution (which is also the posterior mean and median, because normality, is)
 
-$$\hat{\boldsymbol{\beta}}_{MAP} = ((\boldsymbol{X}'\boldsymbol{X} + A^{-1})^{-1} (\boldsymbol{X}'\boldsymbol{y} + A^{-1}\boldsymbol{m})$$- This MAP can be defined as a precision-weighted average of the estimate of $\boldsymbol{\beta}$ from the data and the estimate from the prior
+$$\hat{\boldsymbol{\beta}}_{MAP} = ((\boldsymbol{X}'\boldsymbol{X} + A^{-1})^{-1} (\boldsymbol{X}'\boldsymbol{y} + A^{-1}\boldsymbol{m})$$- This MAP can be defined as a precision-weighted average of the estimate of $\boldsymbol{\beta}$ from the data and the estimate from the prior. Precision matrix is the inverse of covariance matrix.
 
 ###Example
 
-Find the MAP of the insurance charges regression parameters assuming a normal prior with $\boldsymbol{m} = \boldsymbol{0}$ and $A = I$.
+Find the MAP of the insurance charges regression parameters assuming a normal prior with $\boldsymbol{m} = \boldsymbol{0}$ and $A = I$. A fairy weakly informative prior
 
 ```{r}
+insurance <- read.csv("../Multiple Linear Regression/Data/insurance.csv")
+
+y <- insurance$charges
+X <- model.matrix(charges ~ ., insurance)
+ 
+# prior hyperparameters
+k <- ncol(X) # number of parameters 
+m <- rep(0,k)
+A <- diag(k)
+MAP <- solve(t(X) %*% X + solve(A)) %*% (t(X) %*% y + solve(A) %*% m)
 ```
 
 ## Generalized Linear Bayesian Regression
@@ -246,3 +256,9 @@ Determine the amount of evidence for a non-linear model $M_1$ for healthcare exp
 
 ```{r}
 ```
+
+### What to know from this module for THE FINAL 
+
+1.  Fundamental difference between frequentist and Bayesian statistics
+2.  Interpret a credible interval vs a confidence interval
+3.  what happens when you change your prior... from the graph (weakly informative vs strong prior informative distributions) (play around with that shiny app)
