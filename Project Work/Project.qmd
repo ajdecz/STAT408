@@ -1,5 +1,5 @@
 ---
-title: "Final Project\nAugust Decz\nSTAT 408\nDr. Stuart "
+title: "Final Project\nAugust Decz\nSTAT 408\nDr. Stuart"
 format: 
   html:
     self-contained: true
@@ -9,12 +9,6 @@ execute:
   echo: true
   include: true
 ---
-
-### Introduction
-
-FIFA 23 is a soccer video game previously owned by Electronic Arts (EA), also known for famous titles such as Madden, NCAA, the Sims, and many more. I personally have been playing FIFA since 2012 when I was a kid, and have grown a strong affinity for its playstyle and frequent updates mimicking the current state of the soccer world. Each player in the game is created with many factors (other than graphical and animations) that determine their overall rating (e.g. Messi is a 90 overall but has 87 speed, 94 dribbling etc.), and how those ratings actually transfer to in game play usually determines market value. The FIFA market is a (mostly) completely open laissez-faire market where supply and demand run the show. Higher rated players (or more known players like Messi/Ronaldo) are worth more coins than lower rated players. For this project, I will analyze/determine how specific attributes that go into a player\'s FIFA card rating determine market value. Note that since the game is from over two years ago EA closes the open market down and final market values are unchangeable. 
-
-The dataset I found uses only base cards from the version of the game from 2023, I was unable to find a more recent dataset that has the proper columns to answer the questions I strive to answer. Using only base cards eliminates the factor of limited availability (as promo or special cards are harder to find or may have only been available for a select amount of time e.g. Team of the Year cards). The full dataset consists of 16710 observations (each observation is a base player card) and 65 variables describing the player including nationality, height, etc. Note that not all attributes for a player are included in determining the rating, typically statistics such as pace(speed), shooting, passing, dribbling, defense, and physicality are averaged to find a player\'s rating. However, having played FIFA for a long time I know that taller players are typically valued more (and other examples) so I will be including many different variables in my model to predict player market value. Our ultimate goal is to determine what player attributes best predict FIFA market value.
 
 1.  Loading in the dataset
 
@@ -53,8 +47,8 @@ fifa_clean <- fifa %>%
 Summary Stats and Visual Exploration
 
 ```{r}
-summary(fifa_clean)
-skimr::skim(fifa_clean)
+summary(fifa_clean$Value)
+var(fifa_clean$Value)
 ```
 
 now lets see if it runs the model
@@ -89,7 +83,6 @@ refitting
 
 ```{r}
 mod_bc <- lm(Value_bc ~ ., data = fifa_clean %>% dplyr::select(-Value))
-summary(mod_bc)
 
 # Diagnostic plots
 plot(mod_bc, 1)
@@ -112,15 +105,26 @@ vif(mod_bc)
 stepwise model because we have multicollinearity
 
 ```{r}
-step_mod <- step(mod_bc, method = 'backwards')
+step_mod <- step(mod_bc, method = 'both', trace = 0)
+summary(step_mod)
 ```
 
-maybe include these interaction terms
+```{r}
+vif(step_mod)
+```
 
--   **Acceleration × SprintSpeed** (pace synergy)
+```{r}
+confint(step_mod)
+```
 
--   **Strength × Aggression** (physicality combo)
+```{r}
+ggplot(fifa_clean, aes(x = Value)) +
+  geom_histogram(bins = 50, fill = "steelblue") +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "Distribution of Player Market Value (Raw)",
+       x = "Market Value (€)", y = "Count")
 
--   **SkillMoves × Dribbling** (skill amplifies dribbling)
 
--   **Height × Jumping** (aerial ability interaction)
+```
+
+FINAL MODEL:
